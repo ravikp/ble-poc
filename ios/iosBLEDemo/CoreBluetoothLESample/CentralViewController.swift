@@ -31,10 +31,12 @@ class CentralViewController: UIViewController {
     
     override func viewDidLoad() {
         centralManager = CBCentralManager(delegate: self, queue: nil, options: [CBCentralManagerOptionShowPowerAlertKey: true])
+        // NOTE: Above line automatically starts the scanning, calls retrievePeripheral() and auto-connects
         super.viewDidLoad()
         // show chat messages
-        // TODO: Connect to a peripheral !!
-        // DONE: Initialise controller with storyboard!
+        // DONE-ish: Connect to a peripheral !!
+        // Another observer goes here, and the above logic shows a loading icon
+        // TODO: Connect BLE's message sent & received to MessageKit
         let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
         let nextViewController = storyBoard.instantiateViewController(withIdentifier: "centralchat") as! ChatViewController
         nextViewController.title = "Chat"
@@ -403,12 +405,15 @@ struct Message: MessageType {
     
 }
 
+
+// TODO: Move this file to it's own file
 class ChatViewController: MessagesViewController, MessagesDataSource, MessagesLayoutDelegate, MessagesDisplayDelegate {
     var currentSender: MessageKit.SenderType = Sender(senderId: "self", displayName: "iOS")
     let otherUser = Sender(senderId: "other", displayName: "Android")
     var messages :[MessageType] = []
     override func viewDidLoad() {
         // super.viewDidLoad()
+        // TODO: See if this library provides an Observer, Observer Pattern
         messages.append(Message(sender: currentSender,
                                 messageId: "1",
                                 sentDate: Date().addingTimeInterval(-86400),
@@ -421,14 +426,19 @@ class ChatViewController: MessagesViewController, MessagesDataSource, MessagesLa
                                 messageId: "3",
                                 sentDate: Date().addingTimeInterval(-84400),
                                 kind: .text("Byte")))
+
+        messagesCollectionView.messagesDataSource = self
+        messagesCollectionView.messagesLayoutDelegate = self
+        messagesCollectionView.messagesDisplayDelegate = self
+        // TODO: refresh the UI on new message showing up
+        // REASON: The above messages show up
+        super.viewDidLoad()
+        // The message below this doesn't show up on the UI, that's why having an observer
+        //  construct from Swift is essential
         messages.append(Message(sender: otherUser,
                                 messageId: "4",
                                 sentDate: Date().addingTimeInterval(-86300),
                                 kind: .text("bye")))
-        messagesCollectionView.messagesDataSource = self
-        messagesCollectionView.messagesLayoutDelegate = self
-        messagesCollectionView.messagesDisplayDelegate = self
-        super.viewDidLoad()
     }
     
     func messageForItem(at indexPath: IndexPath, in messagesCollectionView: MessageKit.MessagesCollectionView) -> MessageKit.MessageType {
