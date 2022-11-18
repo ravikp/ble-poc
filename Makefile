@@ -27,6 +27,7 @@ setup_dirs:
 
 setup_tools:
 	cargo install uniffi_bindgen@0.21.0
+	rustup toolchain add stable-x86_64-unknown-linux-gnu
 
 clean_dirs:
 	rm -rf $(ios_inc_dir) $(ios_libs_dir) $(shared_lib_output_dir) $(ios_generated_src_dir)
