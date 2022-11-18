@@ -1,0 +1,8 @@
+fileignoreconfig:
+- filename: ios/iosBLEDemo/CoreBluetoothLESample.xcworkspace/xcshareddata/swiftpm/Package.resolved
+  checksum: e745db1bfe9aef25fc4a068555fe183290a0dfa78cabc7fd35bdb435f8b67336
+- filename: ios/iosBLEDemo/CoreBluetoothLESample.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+  checksum: d7729096965ac2171c7a912a3956e1dae944b5f1c188646b6070d7deb0bc1540
+- filename: ios/iosBLEDemo/CoreBluetoothLESample/Base.lproj/Main.storyboard
+  checksum: 5464997689345323124b208a3fee6454cacd13349c5a1ef6d16b02d582669b5b
+version: ""
