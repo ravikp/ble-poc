@@ -1,23 +1,24 @@
 /*
-See LICENSE folder for this sample’s licensing information.
-
-Abstract:
-A class to discover, connect, receive notifications and write data to peripherals by using a transfer service and characteristic.
-*/
+ See LICENSE folder for this sample’s licensing information.
+ 
+ Abstract:
+ A class to discover, connect, receive notifications and write data to peripherals by using a transfer service and characteristic.
+ */
 
 import UIKit
 import CoreBluetooth
 import os
 import MessageKit
-import Messages
+import InputBarAccessoryView
+
 
 class CentralViewController: UIViewController {
     // UIViewController overrides, properties specific to this class, private helper methods, etc.
-
+    
     @IBOutlet var textView: UITextView!
-
+    
     var centralManager: CBCentralManager!
-
+    
     var discoveredPeripheral: CBPeripheral?
     var transferCharacteristic: CBCharacteristic?
     var writeIterationsComplete = 0
@@ -26,7 +27,7 @@ class CentralViewController: UIViewController {
     let defaultIterations = 5     // change this value based on test usecase
     
     var data = Data()
-
+    
     // MARK: - view lifecycle
     
     override func viewDidLoad() {
@@ -42,19 +43,19 @@ class CentralViewController: UIViewController {
         nextViewController.title = "Chat"
         navigationController?.pushViewController(nextViewController, animated: true)
     }
-	
+    
     override func viewWillDisappear(_ animated: Bool) {
         // Don't keep it going while we're not showing.
         centralManager.stopScan()
         os_log("Scanning stopped")
-
+        
         data.removeAll(keepingCapacity: false)
         
         super.viewWillDisappear(animated)
     }
-
+    
     // MARK: - Helper Methods
-
+    
     /*
      * We will first check if we are already connected to our counterpart
      * Otherwise, scan for peripherals - specifically for our service's 128bit CBUUID
@@ -67,12 +68,12 @@ class CentralViewController: UIViewController {
         // TODO: Should we show a list of peripherals to connect to each time if there are >1?
         if let connectedPeripheral = connectedPeripherals.last {
             os_log("Connecting to peripheral %@", connectedPeripheral)
-			self.discoveredPeripheral = connectedPeripheral
+            self.discoveredPeripheral = connectedPeripheral
             centralManager.connect(connectedPeripheral, options: nil)
         } else {
             // We were not connected to our counterpart, so start scanning
             centralManager.scanForPeripherals(withServices: [TransferService.serviceUUID],
-                                               options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
+                                              options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
         }
     }
     
@@ -84,7 +85,7 @@ class CentralViewController: UIViewController {
     private func cleanup() {
         // Don't do anything if we're not connected
         guard let discoveredPeripheral = discoveredPeripheral,
-            case .connected = discoveredPeripheral.state else { return }
+              case .connected = discoveredPeripheral.state else { return }
         
         for service in (discoveredPeripheral.services ?? [] as [CBService]) {
             for characteristic in (service.characteristics ?? [] as [CBCharacteristic]) {
@@ -103,24 +104,24 @@ class CentralViewController: UIViewController {
      *  Write some test data to peripheral
      */
     private func writeData() {
-    
+        
         guard let discoveredPeripheral = discoveredPeripheral,
-                let transferCharacteristic = transferCharacteristic
-            else { return }
+              let transferCharacteristic = transferCharacteristic
+        else { return }
         
         // check to see if number of iterations completed and peripheral can accept more data
         while writeIterationsComplete < defaultIterations && discoveredPeripheral.canSendWriteWithoutResponse {
-                    
+            
             let mtu = discoveredPeripheral.maximumWriteValueLength (for: .withoutResponse)
             var rawPacket = [UInt8]()
             
             let bytesToCopy: size_t = min(mtu, data.count)
-			data.copyBytes(to: &rawPacket, count: bytesToCopy)
+            data.copyBytes(to: &rawPacket, count: bytesToCopy)
             let packetData = Data(bytes: &rawPacket, count: bytesToCopy)
-			
-			let stringFromData = String(data: packetData, encoding: .utf8)
-			os_log("Writing %d bytes: %s", bytesToCopy, String(describing: stringFromData))
-			
+            
+            let stringFromData = String(data: packetData, encoding: .utf8)
+            os_log("Writing %d bytes: %s", bytesToCopy, String(describing: stringFromData))
+            
             discoveredPeripheral.writeValue(packetData, for: transferCharacteristic, type: .withoutResponse)
             
             writeIterationsComplete += 1
@@ -137,7 +138,7 @@ class CentralViewController: UIViewController {
 
 extension CentralViewController: CBCentralManagerDelegate {
     // implementations of the CBCentralManagerDelegate methods
-
+    
     /*
      *  centralManagerDidUpdateState is a required protocol method.
      *  Usually, you'd check for other states to make sure the current device supports LE, is powered on, etc.
@@ -145,7 +146,7 @@ extension CentralViewController: CBCentralManagerDelegate {
      *  the Central is ready to be used.
      */
     internal func centralManagerDidUpdateState(_ central: CBCentralManager) {
-
+        
         switch central.state {
         case .poweredOn:
             // ... so start working with the peripheral
@@ -188,7 +189,7 @@ extension CentralViewController: CBCentralManagerDelegate {
             return
         }
     }
-
+    
     /*
      *  This callback comes whenever a peripheral that is advertising the transfer serviceUUID is discovered.
      *  We check the RSSI, to make sure it's close enough that we're interested in it, and if it is,
@@ -200,9 +201,9 @@ extension CentralViewController: CBCentralManagerDelegate {
         // Reject if the signal strength is too low to attempt data transfer.
         // Change the minimum RSSI value depending on your app’s use case.
         guard RSSI.intValue >= -50
-            else {
-                os_log("Discovered perhiperal not in expected range, at %d", RSSI.intValue)
-                return
+        else {
+            os_log("Discovered perhiperal not in expected range, at %d", RSSI.intValue)
+            return
         }
         
         os_log("Discovered %s at %d", String(describing: peripheral.name), RSSI.intValue)
@@ -218,7 +219,7 @@ extension CentralViewController: CBCentralManagerDelegate {
             centralManager.connect(peripheral, options: nil)
         }
     }
-
+    
     /*
      *  If the connection fails for whatever reason, we need to deal with it.
      */
@@ -265,12 +266,12 @@ extension CentralViewController: CBCentralManagerDelegate {
             os_log("Connection iterations completed")
         }
     }
-
+    
 }
 
 extension CentralViewController: CBPeripheralDelegate {
     // implementations of the CBPeripheralDelegate methods
-
+    
     /*
      *  The peripheral letting us know when services have been invalidated.
      */
@@ -281,7 +282,7 @@ extension CentralViewController: CBPeripheralDelegate {
             peripheral.discoverServices([TransferService.serviceUUID])
         }
     }
-
+    
     /*
      *  The Transfer Service was discovered
      */
@@ -336,7 +337,7 @@ extension CentralViewController: CBPeripheralDelegate {
         }
         
         guard let characteristicData = characteristic.value,
-            let stringFromData = String(data: characteristicData, encoding: .utf8) else { return }
+              let stringFromData = String(data: characteristicData, encoding: .utf8) else { return }
         
         os_log("Received %d bytes: %s", characteristicData.count, stringFromData)
         
@@ -356,7 +357,7 @@ extension CentralViewController: CBPeripheralDelegate {
             data.append(characteristicData)
         }
     }
-
+    
     /*
      *  The peripheral letting us know whether our subscribe/unsubscribe happened or not
      */
@@ -390,63 +391,186 @@ extension CentralViewController: CBPeripheralDelegate {
     }
 }
 
-// MessageViewController implements the UI for this, MessageType has the message metadata(like who sent i, etc)
+/*
+ 
+ // MessageViewController implements the UI for this, MessageType has the message metadata(like who sent i, etc)
+ 
+ struct Sender: SenderType {
+ var senderId: String
+ var displayName: String
+ }
+ 
+ struct Message: MessageType {
+ var sender: MessageKit.SenderType
+ var messageId: String
+ var sentDate: Date
+ var kind: MessageKit.MessageKind
+ 
+ }
+ 
+ 
+ // TODO: Move this file to it's own file
+ class ChatViewController: MessagesViewController, MessagesDataSource, MessagesLayoutDelegate, MessagesDisplayDelegate {
+ var currentSender: MessageKit.SenderType = Sender(senderId: "self", displayName: "iOS")
+ let otherUser = Sender(senderId: "other", displayName: "Android")
+ var messages :[MessageType] = []
+ override func viewDidLoad() {
+ // super.viewDidLoad()
+ // TODO: See if this library provides an Observer, Observer Pattern
+ messages.append(Message(sender: currentSender,
+ messageId: "1",
+ sentDate: Date().addingTimeInterval(-86400),
+ kind: .text("Hello world")))
+ messages.append(Message(sender: otherUser,
+ messageId: "2",
+ sentDate: Date().addingTimeInterval(-85400),
+ kind: .text("Hi")))
+ 
+ messages.append(Message(sender: currentSender,
+ messageId: "3",
+ sentDate: Date().addingTimeInterval(-84400),
+ kind: .text("Byte")))
+ 
+ messages.append(Message(sender: otherUser,
+ messageId: "4",
+ sentDate: Date().addingTimeInterval(-86300),
+ kind: .text("bye4")))
+ 
+ 
+ 
+ messagesCollectionView.messagesDataSource = self
+ messagesCollectionView.messagesLayoutDelegate = self
+ messagesCollectionView.messagesDisplayDelegate = self
+ // TODO: refresh the UI on new message showing up
+ // REASON: The above messages show up
+ super.viewDidLoad()
+ // The message below this doesn't show up on the UI, that's why having an observer
+ //  construct from Swift is essential
+ 
+ }
+ 
+ func messageForItem(at indexPath: IndexPath, in messagesCollectionView: MessageKit.MessagesCollectionView) -> MessageKit.MessageType {
+ return messages[indexPath.section]
+ }
+ 
+ func numberOfSections(in messagesCollectionView: MessageKit.MessagesCollectionView) -> Int {
+ return messages.count
+ }
+ 
+ }
+ 
+ */
 
-struct Sender: SenderType {
-    var senderId: String
-    var displayName: String
-}
 
-struct Message: MessageType {
-    var sender: MessageKit.SenderType
-    var messageId: String
-    var sentDate: Date
-    var kind: MessageKit.MessageKind
+class ChatViewController: MessagesViewController {
+    var messages: [Message] = []
+    var member: Member!
     
-}
-
-
-// TODO: Move this file to it's own file
-class ChatViewController: MessagesViewController, MessagesDataSource, MessagesLayoutDelegate, MessagesDisplayDelegate {
-    var currentSender: MessageKit.SenderType = Sender(senderId: "self", displayName: "iOS")
-    let otherUser = Sender(senderId: "other", displayName: "Android")
-    var messages :[MessageType] = []
     override func viewDidLoad() {
-        // super.viewDidLoad()
-        // TODO: See if this library provides an Observer, Observer Pattern
-        messages.append(Message(sender: currentSender,
-                                messageId: "1",
-                                sentDate: Date().addingTimeInterval(-86400),
-                                kind: .text("Hello world")))
-        messages.append(Message(sender: otherUser,
-                                messageId: "2",
-                                sentDate: Date().addingTimeInterval(-85400),
-                                kind: .text("Hi")))
-        messages.append(Message(sender: currentSender,
-                                messageId: "3",
-                                sentDate: Date().addingTimeInterval(-84400),
-                                kind: .text("Byte")))
-
+        super.viewDidLoad()
+        member = Member(name: "Central", color: .blue)
         messagesCollectionView.messagesDataSource = self
         messagesCollectionView.messagesLayoutDelegate = self
+        messageInputBar.delegate = self
         messagesCollectionView.messagesDisplayDelegate = self
-        // TODO: refresh the UI on new message showing up
-        // REASON: The above messages show up
-        super.viewDidLoad()
-        // The message below this doesn't show up on the UI, that's why having an observer
-        //  construct from Swift is essential
-        messages.append(Message(sender: otherUser,
-                                messageId: "4",
-                                sentDate: Date().addingTimeInterval(-86300),
-                                kind: .text("bye")))
     }
     
-    func messageForItem(at indexPath: IndexPath, in messagesCollectionView: MessageKit.MessagesCollectionView) -> MessageKit.MessageType {
-        return messages[indexPath.section]
+    
+}
+
+extension ChatViewController: MessagesDataSource {
+    
+    
+    func numberOfSections(
+        in messagesCollectionView: MessagesCollectionView) -> Int {
+            return messages.count
+        }
+    var currentSender: MessageKit.SenderType {
+        return Sender(senderId: member.name, displayName: member.name)
     }
     
-    func numberOfSections(in messagesCollectionView: MessageKit.MessagesCollectionView) -> Int {
-        return messages.count
+    
+    func messageForItem(
+        at indexPath: IndexPath,
+        in messagesCollectionView: MessagesCollectionView) -> MessageType {
+            
+            return messages[indexPath.section]
+        }
+    
+    func messageTopLabelHeight(
+        for message: MessageType,
+        at indexPath: IndexPath,
+        in messagesCollectionView: MessagesCollectionView) -> CGFloat {
+            
+            return 12
+        }
+    
+    func messageTopLabelAttributedText(
+        for message: MessageType,
+        at indexPath: IndexPath) -> NSAttributedString? {
+            
+            return NSAttributedString(
+                string: message.sender.displayName,
+                attributes: [.font: UIFont.systemFont(ofSize: 12)])
+        }
+}
+
+extension ChatViewController: MessagesLayoutDelegate {
+    func heightForLocation(message: MessageType,
+                           at indexPath: IndexPath,
+                           with maxWidth: CGFloat,
+                           in messagesCollectionView: MessagesCollectionView) -> CGFloat {
+        
+        return 0
+    }
+}
+
+extension ChatViewController: MessagesDisplayDelegate {
+    func configureAvatarView(
+        _ avatarView: AvatarView,
+        for message: MessageType,
+        at indexPath: IndexPath,
+        in messagesCollectionView: MessagesCollectionView) {
+            
+            let message = messages[indexPath.section]
+            let color = message.member.color
+            avatarView.backgroundColor = color
+        }
+}
+
+
+extension ChatViewController: InputBarAccessoryViewDelegate {
+    @objc internal func inputBar(_ inputBar: InputBarAccessoryView, didPressSendButtonWith text: String) {
+        processInputBar(messageInputBar)
     }
     
+    private func processInputBar(_ inputBar: InputBarAccessoryView) {
+        let components = inputBar.inputTextView.components
+        inputBar.inputTextView.text = String()
+        inputBar.invalidatePlugins()
+        inputBar.inputTextView.resignFirstResponder() // Resign first responder for iPad split view
+        DispatchQueue.global(qos: .default).async {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else {return}
+                self.insertMessages(components)
+                self.messagesCollectionView.scrollToLastItem(animated: true)
+            }
+        }
+    }
+    
+    private func insertMessages(_ data: [Any]) {
+        for component in data {
+            if let string = component as? String {
+                let message = Message(
+                    member: member,
+                    text: string,
+                    messageId: UUID().uuidString)
+                
+                
+                messages.append(message)
+                print(message)
+                messagesCollectionView.reloadData()
+            }
+        }
+    }
 }

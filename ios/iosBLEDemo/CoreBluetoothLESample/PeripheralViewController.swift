@@ -10,6 +10,7 @@ import CoreBluetooth
 import os
 import MessageKit
 import Messages
+import InputBarAccessoryView
 
 class PeripheralViewController: UIViewController {
 
@@ -310,47 +311,181 @@ func getName(str: String) -> String {
 }
 
 
-// TODO: Move this file to it's own file
-class PChatViewController: MessagesViewController, MessagesDataSource, MessagesLayoutDelegate, MessagesDisplayDelegate {
-    var currentSender: MessageKit.SenderType = Sender(senderId: "self", displayName: "iOS")
-    let otherUser = Sender(senderId: "other", displayName: "Android")
-    var messages :[MessageType] = []
+ //TODO: Move this file to it's own file
+
+
+//struct Sender: SenderType {
+//    var senderId: String
+//    var displayName: String
+//}
+//
+//struct Message: MessageType {
+//    var sender: MessageKit.SenderType
+//    var messageId: String
+//    var sentDate: Date
+//    var kind: MessageKit.MessageKind
+//
+//}
+
+/*
+ 
+ class PChatViewController: MessagesViewController, MessagesDataSource, MessagesLayoutDelegate, MessagesDisplayDelegate {
+ var currentSender: MessageKit.SenderType = Sender(senderId: "self", displayName: "iOS")
+ let otherUser = Sender(senderId: "other", displayName: "Android")
+ var messages :[MessageType] = []
+ override func viewDidLoad() {
+ // super.viewDidLoad()
+ // TODO: See if this library provides an Observer, Observer Pattern
+ messages.append(Message(sender: currentSender,
+ messageId: "1",
+ sentDate: Date().addingTimeInterval(-86400),
+ kind: .text("Hello world")))
+ messages.append(Message(sender: otherUser,
+ messageId: "2",
+ sentDate: Date().addingTimeInterval(-85400),
+ kind: .text("Hi")))
+ messages.append(Message(sender: currentSender,
+ messageId: "3",
+ sentDate: Date().addingTimeInterval(-84400),
+ kind: .text("Byte")))
+ messages.append(Message(sender: otherUser,
+ messageId: "4",
+ sentDate: Date().addingTimeInterval(-86300),
+ kind: .text("bye")))
+ messagesCollectionView.messagesDataSource = self
+ messagesCollectionView.messagesLayoutDelegate = self
+ messagesCollectionView.messagesDisplayDelegate = self
+ // TODO: refresh the UI on new message showing up
+ // REASON: The above messages show up
+ super.viewDidLoad()
+ // The message below this doesn't show up on the UI, that's why having an observer
+ //  construct from Swift is essential
+ 
+ }
+ 
+ func messageForItem(at indexPath: IndexPath, in messagesCollectionView: MessageKit.MessagesCollectionView) -> MessageKit.MessageType {
+ return messages[indexPath.section]
+ }
+ 
+ func numberOfSections(in messagesCollectionView: MessageKit.MessagesCollectionView) -> Int {
+ return messages.count
+ }
+ 
+ }
+ 
+ */
+
+
+
+class PChatViewController: MessagesViewController {
+    var messages: [Message] = []
+    var member: Member!
+    
     override func viewDidLoad() {
-        // super.viewDidLoad()
-        // TODO: See if this library provides an Observer, Observer Pattern
-        messages.append(Message(sender: currentSender,
-                                messageId: "1",
-                                sentDate: Date().addingTimeInterval(-86400),
-                                kind: .text("Hello world")))
-        messages.append(Message(sender: otherUser,
-                                messageId: "2",
-                                sentDate: Date().addingTimeInterval(-85400),
-                                kind: .text("Hi")))
-        messages.append(Message(sender: currentSender,
-                                messageId: "3",
-                                sentDate: Date().addingTimeInterval(-84400),
-                                kind: .text("Byte")))
-        messages.append(Message(sender: otherUser,
-                                messageId: "4",
-                                sentDate: Date().addingTimeInterval(-86300),
-                                kind: .text("bye")))
+        super.viewDidLoad()
+        member = Member(name: "Peripheral", color: .blue)
         messagesCollectionView.messagesDataSource = self
         messagesCollectionView.messagesLayoutDelegate = self
+        messageInputBar.delegate = self
         messagesCollectionView.messagesDisplayDelegate = self
-        // TODO: refresh the UI on new message showing up
-        // REASON: The above messages show up
-        super.viewDidLoad()
-        // The message below this doesn't show up on the UI, that's why having an observer
-        //  construct from Swift is essential
+    }
+    
+}
+
+
+
+extension PChatViewController: MessagesDataSource {
+    
+    
+    func numberOfSections(
+        in messagesCollectionView: MessagesCollectionView) -> Int {
+            return messages.count
+        }
+    var currentSender: MessageKit.SenderType {
+        return Sender(senderId: member.name, displayName: member.name)
+    }
+    
+    
+    func messageForItem(
+        at indexPath: IndexPath,
+        in messagesCollectionView: MessagesCollectionView) -> MessageType {
+            
+            return messages[indexPath.section]
+        }
+    
+    func messageTopLabelHeight(
+        for message: MessageType,
+        at indexPath: IndexPath,
+        in messagesCollectionView: MessagesCollectionView) -> CGFloat {
+            
+            return 12
+        }
+    
+    func messageTopLabelAttributedText(
+        for message: MessageType,
+        at indexPath: IndexPath) -> NSAttributedString? {
+            
+            return NSAttributedString(
+                string: message.sender.displayName,
+                attributes: [.font: UIFont.systemFont(ofSize: 12)])
+        }
+}
+
+extension PChatViewController: MessagesLayoutDelegate {
+    func heightForLocation(message: MessageType,
+                           at indexPath: IndexPath,
+                           with maxWidth: CGFloat,
+                           in messagesCollectionView: MessagesCollectionView) -> CGFloat {
         
+        return 0
+    }
+}
+
+extension PChatViewController: MessagesDisplayDelegate {
+    func configureAvatarView(
+        _ avatarView: AvatarView,
+        for message: MessageType,
+        at indexPath: IndexPath,
+        in messagesCollectionView: MessagesCollectionView) {
+            
+            let message = messages[indexPath.section]
+            let color = message.member.color
+            avatarView.backgroundColor = color
+        }
+}
+
+
+extension PChatViewController: InputBarAccessoryViewDelegate {
+    @objc internal func inputBar(_ inputBar: InputBarAccessoryView, didPressSendButtonWith text: String) {
+        processInputBar(messageInputBar)
     }
     
-    func messageForItem(at indexPath: IndexPath, in messagesCollectionView: MessageKit.MessagesCollectionView) -> MessageKit.MessageType {
-        return messages[indexPath.section]
+    private func processInputBar(_ inputBar: InputBarAccessoryView) {
+        let components = inputBar.inputTextView.components
+        inputBar.inputTextView.text = String()
+        inputBar.invalidatePlugins()
+        inputBar.inputTextView.resignFirstResponder() // Resign first responder for iPad split view
+        DispatchQueue.global(qos: .default).async {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else {return}
+                self.insertMessages(components)
+                self.messagesCollectionView.scrollToLastItem(animated: true)
+            }
+        }
     }
     
-    func numberOfSections(in messagesCollectionView: MessageKit.MessagesCollectionView) -> Int {
-        return messages.count
+    private func insertMessages(_ data: [Any]) {
+        for component in data {
+            if let string = component as? String {
+                let message = Message(
+                    member: member,
+                    text: string,
+                    messageId: UUID().uuidString)
+                
+                messages.append(message)
+                print(message)
+                messagesCollectionView.reloadData()
+            }
+        }
     }
-    
 }

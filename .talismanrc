@@ -5,4 +5,6 @@ fileignoreconfig:
   checksum: d7729096965ac2171c7a912a3956e1dae944b5f1c188646b6070d7deb0bc1540
 - filename: ios/iosBLEDemo/CoreBluetoothLESample/Base.lproj/Main.storyboard
   checksum: 5464997689345323124b208a3fee6454cacd13349c5a1ef6d16b02d582669b5b
+- filename: ios/iosBLEDemo/CoreBluetoothLESample.xcodeproj/project.pbxproj
+  checksum: 87c6b59842c6c570654354b32ed13f59fad5665a0f22fd7352c4234c574c55a4
 version: ""
