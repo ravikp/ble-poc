@@ -311,72 +311,6 @@ func getName(str: String) -> String {
 }
 
 
- //TODO: Move this file to it's own file
-
-
-//struct Sender: SenderType {
-//    var senderId: String
-//    var displayName: String
-//}
-//
-//struct Message: MessageType {
-//    var sender: MessageKit.SenderType
-//    var messageId: String
-//    var sentDate: Date
-//    var kind: MessageKit.MessageKind
-//
-//}
-
-/*
- 
- class PChatViewController: MessagesViewController, MessagesDataSource, MessagesLayoutDelegate, MessagesDisplayDelegate {
- var currentSender: MessageKit.SenderType = Sender(senderId: "self", displayName: "iOS")
- let otherUser = Sender(senderId: "other", displayName: "Android")
- var messages :[MessageType] = []
- override func viewDidLoad() {
- // super.viewDidLoad()
- // TODO: See if this library provides an Observer, Observer Pattern
- messages.append(Message(sender: currentSender,
- messageId: "1",
- sentDate: Date().addingTimeInterval(-86400),
- kind: .text("Hello world")))
- messages.append(Message(sender: otherUser,
- messageId: "2",
- sentDate: Date().addingTimeInterval(-85400),
- kind: .text("Hi")))
- messages.append(Message(sender: currentSender,
- messageId: "3",
- sentDate: Date().addingTimeInterval(-84400),
- kind: .text("Byte")))
- messages.append(Message(sender: otherUser,
- messageId: "4",
- sentDate: Date().addingTimeInterval(-86300),
- kind: .text("bye")))
- messagesCollectionView.messagesDataSource = self
- messagesCollectionView.messagesLayoutDelegate = self
- messagesCollectionView.messagesDisplayDelegate = self
- // TODO: refresh the UI on new message showing up
- // REASON: The above messages show up
- super.viewDidLoad()
- // The message below this doesn't show up on the UI, that's why having an observer
- //  construct from Swift is essential
- 
- }
- 
- func messageForItem(at indexPath: IndexPath, in messagesCollectionView: MessageKit.MessagesCollectionView) -> MessageKit.MessageType {
- return messages[indexPath.section]
- }
- 
- func numberOfSections(in messagesCollectionView: MessageKit.MessagesCollectionView) -> Int {
- return messages.count
- }
- 
- }
- 
- */
-
-
-
 class PChatViewController: MessagesViewController {
     var messages: [Message] = []
     var member: Member!
@@ -389,14 +323,11 @@ class PChatViewController: MessagesViewController {
         messageInputBar.delegate = self
         messagesCollectionView.messagesDisplayDelegate = self
     }
-    
 }
 
 
 
 extension PChatViewController: MessagesDataSource {
-    
-    
     func numberOfSections(
         in messagesCollectionView: MessagesCollectionView) -> Int {
             return messages.count
