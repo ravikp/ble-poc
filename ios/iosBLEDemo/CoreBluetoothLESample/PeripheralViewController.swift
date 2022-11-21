@@ -21,6 +21,13 @@ class PeripheralViewController: UIViewController {
     // @IBOutlet var advertisingSwitch: UISwitch!
     
     @IBOutlet weak var isConnected: UITextView!
+    @IBOutlet var spinner: UIActivityIndicatorView!
+    @IBAction func cancelButtonTapped(){
+        spinner.hidesWhenStopped=true
+        spinner.stopAnimating()
+        navigationController?.popToRootViewController(animated: true)
+        
+    }
     var peripheralManager: CBPeripheralManager!
 
     var transferCharacteristic: CBMutableCharacteristic?
@@ -42,10 +49,12 @@ class PeripheralViewController: UIViewController {
         peripheralManager = CBPeripheralManager(delegate: self, queue: nil, options: [CBPeripheralManagerOptionShowPowerAlertKey: true])
         peripheralManager.startAdvertising([CBAdvertisementDataServiceUUIDsKey: [TransferService.serviceUUID]])
         super.viewDidLoad()
-        let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
-        let nextViewController = storyBoard.instantiateViewController(withIdentifier: "peripheralchat") as! PChatViewController
-        nextViewController.title = "Chat"
-        navigationController?.pushViewController(nextViewController, animated: true)
+        spinner.startAnimating()
+        spinner.color=UIColor.blue
+//        let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
+//        let nextViewController = storyBoard.instantiateViewController(withIdentifier: "peripheralchat") as! PChatViewController
+//        nextViewController.title = "Chat"
+//        navigationController?.pushViewController(nextViewController, animated: true)
     }
     
     override func viewWillDisappear(_ animated: Bool) {

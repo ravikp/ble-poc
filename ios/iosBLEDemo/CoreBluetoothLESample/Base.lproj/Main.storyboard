@@ -100,7 +100,7 @@
                                     <outlet property="delegate" destination="fSl-V7-HRz" id="s6j-lo-rxM"/>
                                 </connections>
                             </textView>
-                            <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="Flh-x1-fby">
+                            <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" style="large" translatesAutoresizingMaskIntoConstraints="NO" id="Flh-x1-fby">
                                 <rect key="frame" x="197" y="328" width="20" height="20"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             </activityIndicatorView>
@@ -155,8 +155,21 @@
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
+                            <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" style="large" translatesAutoresizingMaskIntoConstraints="NO" id="Vdh-vl-dXn">
+                                <rect key="frame" x="197" y="356" width="20" height="20"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            </activityIndicatorView>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="1Ir-Bv-kiH">
+                                <rect key="frame" x="169" y="431" width="77" height="35"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="tinted" title="Cancel"/>
+                                <connections>
+                                    <action selector="cancelButtonTapped" destination="fAL-1c-sOi" eventType="touchUpInside" id="acr-pi-juU"/>
+                                </connections>
+                            </button>
                             <textView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" fixedFrame="YES" text="Central is connecting to peripheral" textAlignment="natural" translatesAutoresizingMaskIntoConstraints="NO" id="vpk-Gh-JN2">
-                                <rect key="frame" x="69" y="116" width="240" height="41"/>
+                                <rect key="frame" x="103" y="116" width="240" height="41"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <color key="textColor" systemColor="labelColor"/>
@@ -169,6 +182,7 @@
                     </view>
                     <connections>
                         <outlet property="isConnected" destination="vpk-Gh-JN2" id="Hor-Wr-Xdc"/>
+                        <outlet property="spinner" destination="Vdh-vl-dXn" id="rD5-uK-gtl"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="6vW-FK-Qx5" userLabel="First Responder" sceneMemberID="firstResponder"/>
