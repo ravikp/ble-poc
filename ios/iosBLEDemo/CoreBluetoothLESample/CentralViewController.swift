@@ -15,7 +15,16 @@ import InputBarAccessoryView
 class CentralViewController: UIViewController {
     // UIViewController overrides, properties specific to this class, private helper methods, etc.
     
+    
     @IBOutlet var textView: UITextView!
+    
+    @IBOutlet var spinner: UIActivityIndicatorView!
+    @IBAction func cancelButtonTapped(){
+        spinner.hidesWhenStopped=true
+        spinner.stopAnimating()
+        navigationController?.popToRootViewController(animated: true)
+        
+    }
     
     var centralManager: CBCentralManager!
     
@@ -27,7 +36,7 @@ class CentralViewController: UIViewController {
     let defaultIterations = 5     // change this value based on test usecase
     
     var data = Data()
-    
+    let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
     // MARK: - view lifecycle
     
     override func viewDidLoad() {
@@ -38,10 +47,12 @@ class CentralViewController: UIViewController {
         // DONE-ish: Connect to a peripheral !!
         // Another observer goes here, and the above logic shows a loading icon
         // TODO: Connect BLE's message sent & received to MessageKit
-        let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
-        let nextViewController = storyBoard.instantiateViewController(withIdentifier: "centralchat") as! ChatViewController
-        nextViewController.title = "Chat"
-        navigationController?.pushViewController(nextViewController, animated: true)
+        spinner.startAnimating()
+        spinner.color=UIColor.blue
+//        let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
+//        let nextViewController = storyBoard.instantiateViewController(withIdentifier: "centralchat") as! ChatViewController
+//        nextViewController.title = "Chat"
+//        navigationController?.pushViewController(nextViewController, animated: true)
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -238,6 +249,7 @@ extension CentralViewController: CBCentralManagerDelegate {
         centralManager.stopScan()
         os_log("Scanning stopped")
         
+        
         // set iteration info
         connectionIterationsComplete += 1
         writeIterationsComplete = 0
@@ -250,6 +262,10 @@ extension CentralViewController: CBCentralManagerDelegate {
         
         // Search only for services that match our UUID
         peripheral.discoverServices([TransferService.serviceUUID])
+        
+        let nextViewController = storyBoard.instantiateViewController(withIdentifier: "centralchat") as! ChatViewController
+        nextViewController.title = "Chat"
+        navigationController?.pushViewController(nextViewController, animated: true)
     }
     
     /*
