@@ -13,7 +13,10 @@ import Messages
 import InputBarAccessoryView
 
 class PeripheralViewController: UIViewController {
+    
+    
 
+    
     @IBOutlet var textView: UITextView!
     // @IBOutlet var advertisingSwitch: UISwitch!
     
@@ -23,9 +26,17 @@ class PeripheralViewController: UIViewController {
     var transferCharacteristic: CBMutableCharacteristic?
     var connectedCentral: CBCentral?
     var dataToSend = Data()
+    
     var sendDataIndex: Int = 0
     
     // MARK: - View Lifecycle
+    
+    func setdatToSend(mess: Data){
+        print("before the assignment")
+        dataToSend = mess
+        print(dataToSend)
+    }
+    
     
     override func viewDidLoad() {
         peripheralManager = CBPeripheralManager(delegate: self, queue: nil, options: [CBPeripheralManagerOptionShowPowerAlertKey: true])
@@ -311,7 +322,11 @@ func getName(str: String) -> String {
 }
 
 
+
+ //TODO: Move this file to it's own file
+
 class PChatViewController: MessagesViewController {
+    
     var messages: [Message] = []
     var member: Member!
     
@@ -324,8 +339,6 @@ class PChatViewController: MessagesViewController {
         messagesCollectionView.messagesDisplayDelegate = self
     }
 }
-
-
 
 extension PChatViewController: MessagesDataSource {
     func numberOfSections(
@@ -387,6 +400,8 @@ extension PChatViewController: MessagesDisplayDelegate {
 
 
 extension PChatViewController: InputBarAccessoryViewDelegate {
+    
+    
     @objc internal func inputBar(_ inputBar: InputBarAccessoryView, didPressSendButtonWith text: String) {
         processInputBar(messageInputBar)
     }
@@ -414,8 +429,13 @@ extension PChatViewController: InputBarAccessoryViewDelegate {
                     messageId: UUID().uuidString)
                 
                 messages.append(message)
-                print(message)
+                print(message.text)
+
+                PeripheralViewController().setdatToSend(mess: message.text.data(using: .utf8)!)
+                
                 messagesCollectionView.reloadData()
+               
+                
             }
         }
     }

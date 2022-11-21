@@ -36,7 +36,10 @@ class CentralViewController: UIViewController {
     let defaultIterations = 5     // change this value based on test usecase
     
     var data = Data()
+
     let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
+ 
+
     // MARK: - view lifecycle
     
     override func viewDidLoad() {
@@ -511,9 +514,9 @@ extension ChatViewController: InputBarAccessoryViewDelegate {
                     text: string,
                     messageId: UUID().uuidString)
                 
-                
                 messages.append(message)
                 print(message)
+                
                 messagesCollectionView.reloadData()
             }
         }
