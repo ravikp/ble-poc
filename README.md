@@ -75,7 +75,7 @@ make build_android_shared_lib_aarch64
 make build_android_shared_lib_i686
 ```
 
-# Obsolete
+# Obsolete Approach
 * Setup toolchains for android
 ```
 mkdir ~/.NDK
