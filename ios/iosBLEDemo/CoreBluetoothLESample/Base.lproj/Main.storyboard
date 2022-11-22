@@ -181,7 +181,6 @@
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                     </view>
                     <connections>
-                        <outlet property="isConnected" destination="vpk-Gh-JN2" id="Hor-Wr-Xdc"/>
                         <outlet property="spinner" destination="Vdh-vl-dXn" id="rD5-uK-gtl"/>
                     </connections>
                 </viewController>

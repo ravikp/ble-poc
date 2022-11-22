@@ -14,27 +14,23 @@ import InputBarAccessoryView
 
 class CentralViewController: UIViewController {
     // UIViewController overrides, properties specific to this class, private helper methods, etc.
-    
-    
+
     @IBOutlet var textView: UITextView!
-    
     @IBOutlet var spinner: UIActivityIndicatorView!
     @IBAction func cancelButtonTapped(){
         spinner.hidesWhenStopped=true
         spinner.stopAnimating()
         navigationController?.popToRootViewController(animated: true)
-        
     }
-    
     var centralManager: CBCentralManager!
-    
     var discoveredPeripheral: CBPeripheral?
+    // deprecate transferCharacteristic
     var transferCharacteristic: CBCharacteristic?
+    var readChar: CBCharacteristic?
+    var writeChar: CBCharacteristic?
     var writeIterationsComplete = 0
     var connectionIterationsComplete = 0
-    
     let defaultIterations = 5     // change this value based on test usecase
-    
     var data = Data()
 
     let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
@@ -44,6 +40,8 @@ class CentralViewController: UIViewController {
     
     override func viewDidLoad() {
         centralManager = CBCentralManager(delegate: self, queue: nil, options: [CBCentralManagerOptionShowPowerAlertKey: true])
+        // Cannot trigger a scan here as the above doesn't
+        // start scanning right away or turn on the device
         // NOTE: Above line automatically starts the scanning, calls retrievePeripheral() and auto-connects
         super.viewDidLoad()
         // show chat messages
@@ -52,19 +50,14 @@ class CentralViewController: UIViewController {
         // TODO: Connect BLE's message sent & received to MessageKit
         spinner.startAnimating()
         spinner.color=UIColor.blue
-//        let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
-//        let nextViewController = storyBoard.instantiateViewController(withIdentifier: "centralchat") as! ChatViewController
-//        nextViewController.title = "Chat"
-//        navigationController?.pushViewController(nextViewController, animated: true)
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         // Don't keep it going while we're not showing.
         centralManager.stopScan()
         os_log("Scanning stopped")
-        
+        cleanup()
         data.removeAll(keepingCapacity: false)
-        
         super.viewWillDisappear(animated)
     }
     
@@ -75,9 +68,9 @@ class CentralViewController: UIViewController {
      * Otherwise, scan for peripherals - specifically for our service's 128bit CBUUID
      */
     private func retrievePeripheral() {
-        
+        // should we clear stale connected peripherals like Android, or does
+        //  Corebluetooth does it for us?
         let connectedPeripherals: [CBPeripheral] = (centralManager.retrieveConnectedPeripherals(withServices: [TransferService.serviceUUID]))
-        
         os_log("Found connected Peripherals with transfer service: %@", connectedPeripherals)
         // TODO: Should we show a list of peripherals to connect to each time if there are >1?
         if let connectedPeripheral = connectedPeripherals.last {
@@ -103,17 +96,19 @@ class CentralViewController: UIViewController {
         
         for service in (discoveredPeripheral.services ?? [] as [CBService]) {
             for characteristic in (service.characteristics ?? [] as [CBCharacteristic]) {
-                if characteristic.uuid == TransferService.characteristicUUID && characteristic.isNotifying {
+                // TODO: should the read and write both characteristics be closed/notified?
+                if characteristic.uuid == TransferService.readChar && characteristic.isNotifying {
                     // It is notifying, so unsubscribe
+                    // TODO: Send out an indicate instead!
                     self.discoveredPeripheral?.setNotifyValue(false, for: characteristic)
                 }
             }
         }
-        
         // If we've gotten this far, we're connected, but we're not subscribed, so we just disconnect
+        // non-blocking call
         centralManager.cancelPeripheralConnection(discoveredPeripheral)
     }
-    
+
     /*
      *  Write some test data to peripheral
      */
@@ -160,7 +155,6 @@ extension CentralViewController: CBCentralManagerDelegate {
      *  the Central is ready to be used.
      */
     internal func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        
         switch central.state {
         case .poweredOn:
             // ... so start working with the peripheral
@@ -247,7 +241,11 @@ extension CentralViewController: CBCentralManagerDelegate {
      */
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         os_log("Peripheral Connected")
-        
+        let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
+        let nextViewController = storyBoard.instantiateViewController(withIdentifier: "centralchat") as! ChatViewController
+        nextViewController.title = "Chat"
+        navigationController?.pushViewController(nextViewController, animated: true)
+        spinner.stopAnimating()
         // Stop scanning
         centralManager.stopScan()
         os_log("Scanning stopped")
@@ -265,10 +263,6 @@ extension CentralViewController: CBCentralManagerDelegate {
         
         // Search only for services that match our UUID
         peripheral.discoverServices([TransferService.serviceUUID])
-        
-        let nextViewController = storyBoard.instantiateViewController(withIdentifier: "centralchat") as! ChatViewController
-        nextViewController.title = "Chat"
-        navigationController?.pushViewController(nextViewController, animated: true)
     }
     
     /*
@@ -295,7 +289,6 @@ extension CentralViewController: CBPeripheralDelegate {
      *  The peripheral letting us know when services have been invalidated.
      */
     func peripheral(_ peripheral: CBPeripheral, didModifyServices invalidatedServices: [CBService]) {
-        
         for service in invalidatedServices where service.uuid == TransferService.serviceUUID {
             os_log("Transfer service is invalidated - rediscover services")
             peripheral.discoverServices([TransferService.serviceUUID])
@@ -317,7 +310,8 @@ extension CentralViewController: CBPeripheralDelegate {
         // Loop through the newly filled peripheral.services array, just in case there's more than one.
         guard let peripheralServices = peripheral.services else { return }
         for service in peripheralServices {
-            peripheral.discoverCharacteristics([TransferService.characteristicUUID], for: service)
+            // DOUBT: What side-effect is this exactly causing??
+            peripheral.discoverCharacteristics([TransferService.readChar, TransferService.writeChar], for: service)
         }
     }
     
@@ -335,10 +329,13 @@ extension CentralViewController: CBPeripheralDelegate {
         
         // Again, we loop through the array, just in case and check if it's the right one
         guard let serviceCharacteristics = service.characteristics else { return }
-        for characteristic in serviceCharacteristics where characteristic.uuid == TransferService.characteristicUUID {
+        for characteristic in serviceCharacteristics {
             // If it is, subscribe to it
             transferCharacteristic = characteristic
-            peripheral.setNotifyValue(true, for: characteristic)
+            if characteristic.uuid == TransferService.readChar {
+                peripheral.setNotifyValue(true, for: characteristic)
+            }
+            // TODO: Should this also be done for write?
         }
         
         // Once this is complete, we just need to wait for the data to come in.
@@ -388,7 +385,8 @@ extension CentralViewController: CBPeripheralDelegate {
         }
         
         // Exit if it's not the transfer characteristic
-        guard characteristic.uuid == TransferService.characteristicUUID else { return }
+        // TODO: Should it be writeChar?
+        guard characteristic.uuid == TransferService.readChar else { return }
         
         if characteristic.isNotifying {
             // Notification has started

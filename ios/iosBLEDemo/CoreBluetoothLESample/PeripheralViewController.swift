@@ -13,38 +13,23 @@ import Messages
 import InputBarAccessoryView
 
 class PeripheralViewController: UIViewController {
-    
-    
-
-    
-    @IBOutlet var textView: UITextView!
-    // @IBOutlet var advertisingSwitch: UISwitch!
-    
-    @IBOutlet weak var isConnected: UITextView!
     @IBOutlet var spinner: UIActivityIndicatorView!
-    @IBAction func cancelButtonTapped(){
+    @IBAction func cancelButtonTapped() {
         spinner.hidesWhenStopped=true
         spinner.stopAnimating()
         navigationController?.popToRootViewController(animated: true)
-        
+        // TODO: Perform bluetooth peripheral resource cleanups
+        peripheralManager.stopAdvertising()
     }
     var peripheralManager: CBPeripheralManager!
-
-    var transferCharacteristic: CBMutableCharacteristic?
+    var readCharacteristic: CBMutableCharacteristic?
+    var writeCharacteristic: CBMutableCharacteristic?
     var connectedCentral: CBCentral?
     var dataToSend = Data()
-    
+
     var sendDataIndex: Int = 0
-    
+
     // MARK: - View Lifecycle
-    
-    func setdatToSend(mess: Data){
-        print("before the assignment")
-        dataToSend = mess
-        print(dataToSend)
-    }
-    
-    
     override func viewDidLoad() {
         peripheralManager = CBPeripheralManager(delegate: self, queue: nil, options: [CBPeripheralManagerOptionShowPowerAlertKey: true])
         peripheralManager.startAdvertising([CBAdvertisementDataServiceUUIDsKey: [TransferService.serviceUUID]])
@@ -59,10 +44,11 @@ class PeripheralViewController: UIViewController {
     
     override func viewWillDisappear(_ animated: Bool) {
         // Don't keep advertising going while we're not showing.
-        isConnected.text = "Disconnecting"
+        // isConnected.text = "Disconnecting"
         // TODO: Check if the peripheralManager needs to gracefully terminate connections with the central
         peripheralManager.stopAdvertising()
-
+        // TODO: Cleanup BLE Peripheral resources, de-allocate ChatView if required
+        // TODO: Cleanup discovered BLE Peripherals
         super.viewWillDisappear(animated)
     }
 
@@ -72,10 +58,11 @@ class PeripheralViewController: UIViewController {
      *  Sends the next amount of data to the connected central
      */
     static var sendingEOM = false
-    
+
     private func sendData() {
-		
-		guard let transferCharacteristic = transferCharacteristic else {
+		// this is sort of a nil check on it
+		guard let transferCharacteristic = readCharacteristic else {
+            os_log("transferCharacteristic found to be null")
 			return
 		}
 		
@@ -148,27 +135,29 @@ class PeripheralViewController: UIViewController {
     }
 
     private func setupPeripheral() {
-        
-        // Build our service.
-        
         // Start with the CBMutableCharacteristic.
-        let transferCharacteristic = CBMutableCharacteristic(type: TransferService.characteristicUUID,
-                                                         properties: [.notify, .writeWithoutResponse],
-                                                         value: nil,
-                                                         permissions: [.readable, .writeable])
-        
+        let reader = CBMutableCharacteristic(type: TransferService.readChar,
+                                             properties: [.read, .indicate],
+                                             value: nil,
+                                             permissions: [.readable])
+        let writer = CBMutableCharacteristic(type: TransferService.writeChar,
+                                             properties: [.writeWithoutResponse, .write],
+                                             value: nil,
+                                             permissions: [.writeable])
+
         // Create a service from the characteristic.
         let transferService = CBMutableService(type: TransferService.serviceUUID, primary: true)
         
         // Add the characteristic to the service.
-        transferService.characteristics = [transferCharacteristic]
+        transferService.characteristics = [reader, writer]
         
         // And add it to the peripheral manager.
         peripheralManager.add(transferService)
         
         // Save the characteristic for later.
-        self.transferCharacteristic = transferCharacteristic
-
+        self.readCharacteristic = reader
+        self.writeCharacteristic = writer
+        // reader.setValue(Any?, forKey: <#T##String#>)
     }
 }
 
@@ -237,12 +226,12 @@ extension PeripheralViewController: CBPeripheralManagerDelegate {
      *  Catch when someone subscribes to our characteristic, then start sending them data
      */
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
-        isConnected.text = "Peripheral is connected to Central"
+        // isConnected.text = "Peripheral is connected to Central"
         os_log("Central subscribed to characteristic")
         
         // Get the data
-        let rustEncryptedData = getName(str: textView.text)
-        dataToSend = rustEncryptedData.data(using: .utf8)!
+        // let rustEncryptedData = getName(str: textView.text)
+        // dataToSend = rustEncryptedData.data(using: .utf8)!
         
         // Reset the index
         sendDataIndex = 0
@@ -283,43 +272,9 @@ extension PeripheralViewController: CBPeripheralManagerDelegate {
             }
             
             os_log("Received write request of %d bytes: %s", requestValue.count, stringFromData)
-            self.textView.text = stringFromData
+            // self.textView.text = stringFromData
         }
     }
-}
-
-extension PeripheralViewController: UITextViewDelegate {
-    // implementations of the UITextViewDelegate methods
-
-    /*
-     *  This is called when a change happens, so we know to stop advertising
-     */
-    func textViewDidChange(_ textView: UITextView) {
-        // If we're already advertising, stop
-//        if advertisingSwitch.isOn {
-//            advertisingSwitch.isOn = false
-//            peripheralManager.stopAdvertising()
-//        }
-    }
-    
-    /*
-     *  Adds the 'Done' button to the title bar
-     */
-    func textViewDidBeginEditing(_ textView: UITextView) {
-        // We need to add this manually so we have a way to dismiss the keyboard
-        let rightButton = UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(dismissKeyboard))
-        navigationItem.rightBarButtonItem = rightButton
-    }
-    
-    /*
-     * Finishes the editing
-     */
-    @objc
-    func dismissKeyboard() {
-        textView.resignFirstResponder()
-        navigationItem.rightBarButtonItem = nil
-    }
-    
 }
 
 func getName(str: String) -> String {
@@ -333,7 +288,6 @@ func getName(str: String) -> String {
 
 
  //TODO: Move this file to it's own file
-
 class PChatViewController: MessagesViewController {
     
     var messages: [Message] = []
@@ -350,10 +304,6 @@ class PChatViewController: MessagesViewController {
 }
 
 extension PChatViewController: MessagesDataSource {
-    
-    
-    
-    
     func numberOfSections(
         in messagesCollectionView: MessagesCollectionView) -> Int {
             return messages.count
@@ -361,27 +311,20 @@ extension PChatViewController: MessagesDataSource {
     var currentSender: MessageKit.SenderType {
         return Sender(senderId: member.name, displayName: member.name)
     }
-    
-    
     func messageForItem(
         at indexPath: IndexPath,
         in messagesCollectionView: MessagesCollectionView) -> MessageType {
-            
             return messages[indexPath.section]
         }
-    
     func messageTopLabelHeight(
         for message: MessageType,
         at indexPath: IndexPath,
         in messagesCollectionView: MessagesCollectionView) -> CGFloat {
-            
             return 12
         }
-    
     func messageTopLabelAttributedText(
         for message: MessageType,
         at indexPath: IndexPath) -> NSAttributedString? {
-            
             return NSAttributedString(
                 string: message.sender.displayName,
                 attributes: [.font: UIFont.systemFont(ofSize: 12)])
@@ -393,7 +336,6 @@ extension PChatViewController: MessagesLayoutDelegate {
                            at indexPath: IndexPath,
                            with maxWidth: CGFloat,
                            in messagesCollectionView: MessagesCollectionView) -> CGFloat {
-        
         return 0
     }
 }
@@ -404,7 +346,6 @@ extension PChatViewController: MessagesDisplayDelegate {
         for message: MessageType,
         at indexPath: IndexPath,
         in messagesCollectionView: MessagesCollectionView) {
-            
             let message = messages[indexPath.section]
             let color = message.member.color
             avatarView.backgroundColor = color
@@ -413,8 +354,6 @@ extension PChatViewController: MessagesDisplayDelegate {
 
 
 extension PChatViewController: InputBarAccessoryViewDelegate {
-    
-    
     @objc internal func inputBar(_ inputBar: InputBarAccessoryView, didPressSendButtonWith text: String) {
         processInputBar(messageInputBar)
     }
@@ -440,15 +379,9 @@ extension PChatViewController: InputBarAccessoryViewDelegate {
                     member: member,
                     text: string,
                     messageId: UUID().uuidString)
-                
                 messages.append(message)
                 print(message.text)
-
-                PeripheralViewController().setdatToSend(mess: message.text.data(using: .utf8)!)
-                
                 messagesCollectionView.reloadData()
-               
-                
             }
         }
     }
