@@ -90,16 +90,6 @@
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <textView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="nnY-OJ-Igu">
-                                <rect key="frame" x="8" y="92" width="398" height="796"/>
-                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                                <color key="textColor" systemColor="labelColor"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                <textInputTraits key="textInputTraits" autocapitalizationType="sentences"/>
-                                <connections>
-                                    <outlet property="delegate" destination="fSl-V7-HRz" id="s6j-lo-rxM"/>
-                                </connections>
-                            </textView>
                             <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" style="large" translatesAutoresizingMaskIntoConstraints="NO" id="Flh-x1-fby">
                                 <rect key="frame" x="197" y="328" width="20" height="20"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
@@ -116,16 +106,9 @@
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="OGO-xn-Vmm"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                        <constraints>
-                            <constraint firstItem="nnY-OJ-Igu" firstAttribute="top" secondItem="OGO-xn-Vmm" secondAttribute="top" id="6wf-Me-q6h"/>
-                            <constraint firstItem="OGO-xn-Vmm" firstAttribute="trailing" secondItem="nnY-OJ-Igu" secondAttribute="trailing" constant="8" id="QrM-tK-vjp"/>
-                            <constraint firstAttribute="bottom" secondItem="nnY-OJ-Igu" secondAttribute="bottom" constant="8" id="RfJ-VS-ETD"/>
-                            <constraint firstItem="nnY-OJ-Igu" firstAttribute="leading" secondItem="OGO-xn-Vmm" secondAttribute="leading" constant="8" id="lnA-KA-QW1"/>
-                        </constraints>
                     </view>
                     <connections>
                         <outlet property="spinner" destination="Flh-x1-fby" id="kCf-e9-UJG"/>
-                        <outlet property="textView" destination="nnY-OJ-Igu" id="v7W-7w-rgT"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="lnF-XD-lhu" userLabel="First Responder" sceneMemberID="firstResponder"/>
@@ -187,21 +170,6 @@
                 <placeholder placeholderIdentifier="IBFirstResponder" id="6vW-FK-Qx5" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="1052" y="341.37931034482762"/>
-        </scene>
-        <!--Chat View Controller-->
-        <scene sceneID="7zk-Ip-ddJ">
-            <objects>
-                <viewController storyboardIdentifier="peripheralchat" id="4hQ-lP-n04" customClass="PChatViewController" customModule="CoreBluetoothLESample" customModuleProvider="target" sceneMemberID="viewController">
-                    <view key="view" contentMode="scaleToFill" id="OGk-ox-Sfx">
-                        <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <viewLayoutGuide key="safeArea" id="zsh-fX-H9r"/>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                    </view>
-                </viewController>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="DJR-bh-1NY" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
-            </objects>
-            <point key="canvasLocation" x="1838" y="341"/>
         </scene>
     </scenes>
     <resources>

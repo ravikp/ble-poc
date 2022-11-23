@@ -5,6 +5,7 @@
  A class to discover, connect, receive notifications and write data to peripherals by using a transfer service and characteristic.
  */
 
+import Combine
 import UIKit
 import CoreBluetooth
 import os
@@ -14,11 +15,16 @@ import InputBarAccessoryView
 
 class CentralViewController: UIViewController {
     // UIViewController overrides, properties specific to this class, private helper methods, etc.
-
-    @IBOutlet var textView: UITextView!
+    // delegate for chat to central
+    weak var delegate: CentralMessage?
+    // subscribes to data from MessageKit lib
+    var receiver = PassthroughSubject<String, Never>()
+    var cancellable : AnyCancellable?
     @IBOutlet var spinner: UIActivityIndicatorView!
     @IBAction func cancelButtonTapped(){
         spinner.hidesWhenStopped=true
+        // stopScan will lazily stop the BLE scanning
+        // centralManager.stopScan()
         spinner.stopAnimating()
         navigationController?.popToRootViewController(animated: true)
     }
@@ -32,10 +38,9 @@ class CentralViewController: UIViewController {
     var connectionIterationsComplete = 0
     let defaultIterations = 5     // change this value based on test usecase
     var data = Data()
-
+    
     let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
- 
-
+    
     // MARK: - view lifecycle
     
     override func viewDidLoad() {
@@ -70,9 +75,9 @@ class CentralViewController: UIViewController {
     private func retrievePeripheral() {
         // should we clear stale connected peripherals like Android, or does
         //  Corebluetooth does it for us?
+        // TODO: (UI) Show a non-duplicate list of peripherals in UI
         let connectedPeripherals: [CBPeripheral] = (centralManager.retrieveConnectedPeripherals(withServices: [TransferService.serviceUUID]))
         os_log("Found connected Peripherals with transfer service: %@", connectedPeripherals)
-        // TODO: Should we show a list of peripherals to connect to each time if there are >1?
         if let connectedPeripheral = connectedPeripherals.last {
             os_log("Connecting to peripheral %@", connectedPeripheral)
             self.discoveredPeripheral = connectedPeripheral
@@ -81,6 +86,12 @@ class CentralViewController: UIViewController {
             // We were not connected to our counterpart, so start scanning
             centralManager.scanForPeripherals(withServices: [TransferService.serviceUUID],
                                               options: [CBCentralManagerScanOptionAllowDuplicatesKey: true])
+            // DECISION-POINT: CBCentralManagerScanOptionAllowDuplicatesKey key will
+            // generate discovery event each time the device is seen, but it'll
+            // result in higher battery usage, should it be removed?
+            // this is required because we are accessing RSSI to decide
+            // if we should connect or not(or maybe notify users
+            // to bring devices closer)
         }
     }
     
@@ -108,12 +119,11 @@ class CentralViewController: UIViewController {
         // non-blocking call
         centralManager.cancelPeripheralConnection(discoveredPeripheral)
     }
-
+    
     /*
      *  Write some test data to peripheral
      */
     private func writeData() {
-        
         guard let discoveredPeripheral = discoveredPeripheral,
               let transferCharacteristic = transferCharacteristic
         else { return }
@@ -127,7 +137,8 @@ class CentralViewController: UIViewController {
             let bytesToCopy: size_t = min(mtu, data.count)
             data.copyBytes(to: &rawPacket, count: bytesToCopy)
             let packetData = Data(bytes: &rawPacket, count: bytesToCopy)
-            
+            // clear the data
+            data = Data()
             let stringFromData = String(data: packetData, encoding: .utf8)
             os_log("Writing %d bytes: %s", bytesToCopy, String(describing: stringFromData))
             
@@ -244,6 +255,19 @@ extension CentralViewController: CBCentralManagerDelegate {
         let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
         let nextViewController = storyBoard.instantiateViewController(withIdentifier: "centralchat") as! ChatViewController
         nextViewController.title = "Chat"
+        // connection b/w two classes for data exchange
+        // Delegation pattern example
+        // alternately: use closures/combine
+        self.delegate = nextViewController
+        // nextViewController.push.subscribe(receiver)
+        os_log("263 look here")
+        cancellable = receiver
+            .print("265 hereeeee")
+            .sink { [weak self] val in
+            os_log("267 look here")
+            self?.data = Data(val.utf8)
+            self?.writeData()
+        }
         navigationController?.pushViewController(nextViewController, animated: true)
         spinner.stopAnimating()
         // Stop scanning
@@ -356,17 +380,20 @@ extension CentralViewController: CBPeripheralDelegate {
               let stringFromData = String(data: characteristicData, encoding: .utf8) else { return }
         
         os_log("Received %d bytes: %s", characteristicData.count, stringFromData)
-        
+        delegate?.data(msg: stringFromData)
+        // TODO(UI): Send this data to Central's chat view controller somehow
         // Have we received the end-of-message token?
         if stringFromData == "EOM" {
+            // TODO(backend): Avoid using this custom protocol to exchange messages
             // End-of-message case: show the data.
             // Dispatch the text view update to the main queue for updating the UI, because
             // we don't know which thread this method will be called back on.
             DispatchQueue.main.async() {
-                self.textView.text = String(data: self.data, encoding: .utf8)
+                // send something to peripheral
+                // data = Data(delegate.)
+                //self.textView.text = String(data: self.data, encoding: .utf8)
             }
-            
-            // Write test data
+            // Write data over-network over non-main thread
             writeData()
         } else {
             // Otherwise, just append the data to what we have previously received.
@@ -408,20 +435,29 @@ extension CentralViewController: CBPeripheralDelegate {
     }
 }
 
+protocol CentralMessage: AnyObject {
+    func data(msg: String)
+}
+
 class ChatViewController: MessagesViewController {
     var messages: [Message] = []
     var member: Member!
-    
+    var other: Member!
+    var push = PassthroughSubject<String, Never>()
     override func viewDidLoad() {
         super.viewDidLoad()
         member = Member(name: "Central", color: .blue)
+        other = Member(name: "Peripheral", color: .red)
+
         messagesCollectionView.messagesDataSource = self
         messagesCollectionView.messagesLayoutDelegate = self
         messageInputBar.delegate = self
         messagesCollectionView.messagesDisplayDelegate = self
     }
     
-    
+    override func viewDidDisappear(_ animated: Bool) {
+        // TODO: disconnect from peripheral? & go back to scanning?
+    }
 }
 
 extension ChatViewController: MessagesDataSource {
@@ -491,32 +527,45 @@ extension ChatViewController: InputBarAccessoryViewDelegate {
     }
     
     private func processInputBar(_ inputBar: InputBarAccessoryView) {
-        let components = inputBar.inputTextView.components
+        // TODO(vharsh): does incoming BLE message hit here in debugger?
+        // Likely no!!
+        let components = inputBar.inputTextView.components.map({ String(describing: $0)})
+        // pushing data, now it's subscriber can basically read it
+        push.send(inputBar.inputTextView.text)
+        // now empty the bottom text box, coz message is sent(sort of like an email OutBox)
         inputBar.inputTextView.text = String()
         inputBar.invalidatePlugins()
         inputBar.inputTextView.resignFirstResponder() // Resign first responder for iPad split view
         DispatchQueue.global(qos: .default).async {
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else {return}
+                // update the UI with a nice animation
                 self.insertMessages(components)
                 self.messagesCollectionView.scrollToLastItem(animated: true)
+                // send it across the device boundary(air) via BLE
             }
         }
     }
     
-    private func insertMessages(_ data: [Any]) {
+    private func insertMessages(_ data: [String]) {
         for component in data {
-            if let string = component as? String {
+            //if let string = component as? String {
                 let message = Message(
-                    member: member,
-                    text: string,
+                    member: other,
+                    text: component,
                     messageId: UUID().uuidString)
-                
                 messages.append(message)
-                print(message)
-                
                 messagesCollectionView.reloadData()
-            }
+            //}
         }
     }
+}
+
+extension ChatViewController: CentralMessage {
+    func data(msg: String) {
+        insertMessages([msg])
+        os_log("chat msg received %s", msg)
+    }
+    
+    
 }
