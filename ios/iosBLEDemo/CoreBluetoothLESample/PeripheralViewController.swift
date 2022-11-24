@@ -36,10 +36,7 @@ class PeripheralViewController: UIViewController {
         super.viewDidLoad()
         spinner.startAnimating()
         spinner.color=UIColor.blue
-//        let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
-//        let nextViewController = storyBoard.instantiateViewController(withIdentifier: "peripheralchat") as! PChatViewController
-//        nextViewController.title = "Chat"
-//        navigationController?.pushViewController(nextViewController, animated: true)
+
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -227,7 +224,13 @@ extension PeripheralViewController: CBPeripheralManagerDelegate {
      */
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
         // isConnected.text = "Peripheral is connected to Central"
+        // when indicate is clicked on android ble scanner
+        // not happening when android is scanning
         os_log("Central subscribed to characteristic")
+        let storyBoard : UIStoryboard = UIStoryboard(name: "Main", bundle:nil)
+        let nextViewController = storyBoard.instantiateViewController(withIdentifier: "centralchat") as! ChatViewController
+        nextViewController.title = "Peripheral"
+        navigationController?.pushViewController(nextViewController, animated: true)
         
         // Get the data
         // let rustEncryptedData = getName(str: textView.text)
@@ -265,6 +268,7 @@ extension PeripheralViewController: CBPeripheralManagerDelegate {
      * This callback comes in when the PeripheralManager received write to characteristics
      */
     func peripheralManager(_ peripheral: CBPeripheralManager, didReceiveWrite requests: [CBATTRequest]) {
+        // progress: receives write request from Android scanner apps
         for aRequest in requests {
             guard let requestValue = aRequest.value,
                 let stringFromData = String(data: requestValue, encoding: .utf8) else {
@@ -272,6 +276,7 @@ extension PeripheralViewController: CBPeripheralManagerDelegate {
             }
             // TODO: Push data to the chatview
             os_log("Received write request of %d bytes: %s", requestValue.count, stringFromData)
+            // create a MessageObject and send it to UI
             // self.textView.text = stringFromData
         }
     }

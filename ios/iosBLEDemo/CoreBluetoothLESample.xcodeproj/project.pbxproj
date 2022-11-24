@@ -17,6 +17,7 @@
 		0AE6E65C291BE07700101232 /* librustylib_binding.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0A47B5A1291BBD6200808C4C /* librustylib_binding.a */; };
 		0AE6E65E291BE1D000101232 /* identity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AE6E65D291BE1D000101232 /* identity.swift */; };
 		A9A7C756227E1D6200F2CC59 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = A9A7C755227E1D6200F2CC59 /* README.md */; };
+		CA4ECEA7292F489C004908D6 /* ChatViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4ECEA6292F489C004908D6 /* ChatViewController.swift */; };
 		CA55CC9929248FC000B89FDE /* MessageKit in Frameworks */ = {isa = PBXBuildFile; productRef = CA55CC9829248FC000B89FDE /* MessageKit */; };
 		E6716A1F292937AC007C775F /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6716A1E292937AC007C775F /* Message.swift */; };
 /* End PBXBuildFile section */
@@ -37,6 +38,7 @@
 		940DB595832554E780C12D56 /* SampleCode.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = SampleCode.xcconfig; path = Configuration/SampleCode.xcconfig; sourceTree = "<group>"; };
 		A9A7C755227E1D6200F2CC59 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		A9FCEFA72293634C008CC0CF /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
+		CA4ECEA6292F489C004908D6 /* ChatViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewController.swift; sourceTree = "<group>"; };
 		E6716A1E292937AC007C775F /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -77,6 +79,7 @@
 		012C3066226FD13B00BADEF9 /* CoreBluetoothLESample */ = {
 			isa = PBXGroup;
 			children = (
+				CA4ECEA6292F489C004908D6 /* ChatViewController.swift */,
 				012C3067226FD13B00BADEF9 /* AppDelegate.swift */,
 				012C307D226FD59500BADEF9 /* TransferService.swift */,
 				012C3079226FD27600BADEF9 /* CentralViewController.swift */,
@@ -197,6 +200,7 @@
 				0AE6E65E291BE1D000101232 /* identity.swift in Sources */,
 				012C307E226FD59500BADEF9 /* TransferService.swift in Sources */,
 				012C307A226FD27600BADEF9 /* CentralViewController.swift in Sources */,
+				CA4ECEA7292F489C004908D6 /* ChatViewController.swift in Sources */,
 				E6716A1F292937AC007C775F /* Message.swift in Sources */,
 				012C3068226FD13B00BADEF9 /* AppDelegate.swift in Sources */,
 				012C307C226FD28C00BADEF9 /* PeripheralViewController.swift in Sources */,
