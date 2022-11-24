@@ -125,7 +125,7 @@ class CentralViewController: UIViewController {
      */
     private func writeData() {
         guard let discoveredPeripheral = discoveredPeripheral,
-              let transferCharacteristic = transferCharacteristic
+              let transferCharacteristic = writeChar
         else { return }
         
         // check to see if number of iterations completed and peripheral can accept more data
@@ -359,6 +359,7 @@ extension CentralViewController: CBPeripheralDelegate {
             if characteristic.uuid == TransferService.readChar {
                 peripheral.setNotifyValue(true, for: characteristic)
             }
+            os_log("found %s", characteristic.uuid.uuidString)
             // TODO: Should this also be done for write?
         }
         
@@ -413,7 +414,11 @@ extension CentralViewController: CBPeripheralDelegate {
         
         // Exit if it's not the transfer characteristic
         // TODO: Should it be writeChar?
-        guard characteristic.uuid == TransferService.readChar else { return }
+        // Thursday-finds: should be readChar only
+        guard characteristic.uuid == TransferService.readChar else {
+            os_log("got something else %s", characteristic.uuid.uuidString)
+            return
+        }
         
         if characteristic.isNotifying {
             // Notification has started
