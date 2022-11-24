@@ -261,7 +261,7 @@ extension CentralViewController: CBCentralManagerDelegate {
         self.delegate = nextViewController
         // nextViewController.push.subscribe(receiver)
         os_log("263 look here")
-        cancellable = receiver
+        cancellable = nextViewController.push
             .print("265 hereeeee")
             .sink { [weak self] val in
             os_log("267 look here")
@@ -358,6 +358,10 @@ extension CentralViewController: CBPeripheralDelegate {
             transferCharacteristic = characteristic
             if characteristic.uuid == TransferService.readChar {
                 peripheral.setNotifyValue(true, for: characteristic)
+                readChar = characteristic
+            }
+            if characteristic.uuid == TransferService.writeChar {
+                writeChar = characteristic
             }
             os_log("found %s", characteristic.uuid.uuidString)
             // TODO: Should this also be done for write?
