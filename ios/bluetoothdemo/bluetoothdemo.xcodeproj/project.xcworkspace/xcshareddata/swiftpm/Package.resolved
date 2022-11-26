@@ -1,0 +1,23 @@
+{
+  "pins" : [
+    {
+      "identity" : "rxbluetoothkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Polidea/RxBluetoothKit",
+      "state" : {
+        "revision" : "20a0736b5f53dedd291254236a99509d2be1855f",
+        "version" : "6.0.0"
+      }
+    },
+    {
+      "identity" : "rxswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ReactiveX/RxSwift.git",
+      "state" : {
+        "revision" : "cec68169a048a079f461ba203fe85636548d7a89",
+        "version" : "5.1.3"
+      }
+    }
+  ],
+  "version" : 2
+}
