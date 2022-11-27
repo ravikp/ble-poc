@@ -1,4 +1,4 @@
 namespace identity {
-  string sprinkle(string input);
-  string jwtsign(sequence<u8> private_key, string claims);
+  sequence<u8> encrypt(string plainText);
+  string decrypt(sequence<u8> cipherBytes);
 };

@@ -1,48 +1,23 @@
-pub mod androidjni;
-
 uniffi_macros::include_scaffolding!("identity");
 
-fn sprinkle(input: String) -> String {
-    format!("MSG from G0D: From sprinkle...{}", input)
-}
-
-use ed25519_compact::{SecretKey};
-use jwt_compact::{alg::Ed25519, prelude::*, Renamed, TimeOptions};
-use serde::{Deserialize, Serialize};
-use chrono::{Duration, Utc};
-
+use aes_gcm::{
+    aead::{Aead, KeyInit, OsRng, generic_array::{GenericArray, typenum}},
+    Aes256Gcm, Nonce, Key // Or `Aes128Gcm`
+};
 use lazy_static::lazy_static;
 
-/// Custom claims encoded in the token.
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-struct CustomClaims {
-    /// `sub` is a standard claim which denotes claim subject:
-    /// https://tools.ietf.org/html/rfc7519#section-4.1.2
-    #[serde(rename = "sub")]
-    subject: String,
-}
-
 lazy_static! {
-    static ref TIME_OPTIONS: TimeOptions  = TimeOptions::default();
-    static ref ALG_ED25519: Renamed<Ed25519> = Ed25519::with_specific_name();
+    static ref NONCE: GenericArray<u8, typenum::UInt<typenum::UInt<typenum::UInt<typenum::UInt<typenum::UTerm, typenum::B1>, typenum::B1>, typenum::B0>, typenum::B0>> = *Nonce::from_slice(b"unique nonce");
 }
 
-fn jwtsign(private_key: Vec<u8>, claims: String) -> String {
+static HARDCODED_AES_KEY: [u8; 32] = [213, 171, 156, 252, 142, 182, 51, 37, 130, 203, 180, 13, 127, 175, 54, 114, 32, 52, 19, 150, 181, 118, 11, 14, 78, 201, 143, 17, 240, 62, 16, 254];
 
-    // TODO: This header can be passed from higher layer
-    let hdr = Header::default().with_key_id("test-key");
-    let custom_claims = CustomClaims { subject: claims };
+fn encrypt(plain_text: String) -> Vec<u8> {
+    let cipher = Aes256Gcm::new_from_slice(&HARDCODED_AES_KEY).unwrap();
+    cipher.encrypt(&NONCE, plain_text.as_bytes().as_ref()).unwrap()
+}
 
-    let claims = Claims::new(custom_claims)
-        .set_duration_and_issuance(&TIME_OPTIONS, Duration::days(7))
-        .set_not_before(Utc::now() - Duration::hours(1));
-
-    let ed_secret_key = SecretKey::from_slice(private_key.as_slice()).unwrap();
-
-    let token_string = ALG_ED25519
-        .token(hdr, &claims, &ed_secret_key)
-        .expect("unable to create token");
-    println!("JWT token created with claims: {}", token_string);
-
-    token_string
+fn decrypt(cipher_bytes: Vec<u8>) -> String {
+    let cipher = Aes256Gcm::new_from_slice(&HARDCODED_AES_KEY).unwrap();
+    String::from_utf8(cipher.decrypt(&NONCE, cipher_bytes.as_ref()).unwrap()).unwrap()
 }
