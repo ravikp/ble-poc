@@ -77,9 +77,9 @@ _copy_shared_to_ios:
 	cp -f $(shared_lib_ios_output)/* $(ios_libs_dir)
 
 _copy_shared_to_android:
-	cp -f $(shared_lib_dir)/target/x86_64-linux-android/debug/librustylib_binding.so $(android_jni_libs_dir)/x86_64
-	cp -f $(shared_lib_dir)/target/aarch64-linux-android/debug/librustylib_binding.so $(android_jni_libs_dir)/arm64-v8a
-	cp -f $(shared_lib_dir)/target/armv7-linux-androideabi/debug/librustylib_binding.so $(android_jni_libs_dir)/armeabi-v7a
+	# cp -f $(shared_lib_dir)/target/x86_64-linux-android/debug/librustylib_binding.so $(android_jni_libs_dir)/x86_64
+	# cp -f $(shared_lib_dir)/target/aarch64-linux-android/debug/librustylib_binding.so $(android_jni_libs_dir)/arm64-v8a
+	# cp -f $(shared_lib_dir)/target/armv7-linux-androideabi/debug/librustylib_binding.so $(android_jni_libs_dir)/armeabi-v7a
 	cp -fR $(shared_lib_output_dir)/kotlin $(android_app_src_main)
 
 setup_ios: setup_dirs copy_shared_to_ios
