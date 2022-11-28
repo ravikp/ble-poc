@@ -48,13 +48,12 @@ class CentralController: NSObject, ObservableObject {
             let mtu = connectedPeripheral.maximumWriteValueLength(for: .withoutResponse)
             let encryptedMessage = encrypt(plainText: message)
             let bytesToCopy: size_t = min(mtu, encryptedMessage.count)
+            
             let encryptedMessageData = Data(bytes: encryptedMessage, count: encryptedMessage.count)
             
-            os_log("Central: Writing %d bytes: %s", bytesToCopy, String(describing: message))
+            os_log("Central: Writing %d bytes: %s with MTU: %d", bytesToCopy, String(describing: message), mtu)
             connectedPeripheral.writeValue(encryptedMessageData, for: transferCharacteristic, type: .withoutResponse)
         }
-        
-        os_log("Unable to write message to peripheral")
     }
     
     func cleanup() {

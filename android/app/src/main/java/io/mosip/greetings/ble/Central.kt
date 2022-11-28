@@ -71,7 +71,7 @@ class Central : ChatManager {
         override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
             super.onMtuChanged(gatt, mtu, status)
             onDeviceConnected()
-            Log.i("BLE Central", "Successfully changed mtu size")
+            Log.i("BLE Central", "Successfully changed mtu size: " +  mtu)
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
