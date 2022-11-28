@@ -42,8 +42,8 @@ class PeripheralController: NSObject, ObservableObject {
         guard let transferCharacteristic = transferCharacteristic else {
             return
         }
-        
-        let didSend = peripheralManager.updateValue(Data(bytes: Array(message.utf8), count: message.count), for: transferCharacteristic, onSubscribedCentrals: nil)
+        let encryptedMessage = encrypt(plainText: message)
+        let didSend = peripheralManager.updateValue(Data(bytes: encryptedMessage, count: encryptedMessage.count), for: transferCharacteristic, onSubscribedCentrals: nil)
         
         if !didSend {
             return
@@ -86,12 +86,11 @@ extension PeripheralController: CBPeripheralManagerDelegate {
             }
         }
         for aRequest in requests {
-            if let requestValue = aRequest.value,
-               let stringFromData = String(data: requestValue, encoding: .utf8) {
-               self.publishedMessages.append(Message(content: stringFromData, user: User(name: "Central", isCurrentUser: false)))
-            }else {
-                os_log("Found not data")
-            }
+            let characteristicDataArray = [UInt8](aRequest.value!)
+            let decryptedText = decrypt(cipherBytes: characteristicDataArray)
+
+            os_log("Peripheral: Received %d bytes: %s", decryptedText.count, decryptedText)
+            self.publishedMessages.append(Message(content: decryptedText, user: User(name: "Central", isCurrentUser: false)))
         }
     }
 }

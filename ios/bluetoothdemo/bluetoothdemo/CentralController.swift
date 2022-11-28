@@ -46,12 +46,14 @@ class CentralController: NSObject, ObservableObject {
         if connectedPeripheral.canSendWriteWithoutResponse {
             let mtu = connectedPeripheral.maximumWriteValueLength(for: .withoutResponse)
             
+            let encryptedMessage = encrypt(plainText: message)
+        
             let bytesToCopy: size_t = min(mtu, message.count)
             
-            let messageData = Data(bytes: Array(message.utf8), count: message.count)
+            let encryptedMessageData = Data(bytes: encryptedMessage, count: encryptedMessage.count)
             
-            os_log("Writing %d bytes: %s", bytesToCopy, String(describing: message))
-            connectedPeripheral.writeValue(messageData, for: transferCharacteristic, type: .withoutResponse)
+            os_log("Central: Writing %d bytes: %s", bytesToCopy, String(describing: message))
+            connectedPeripheral.writeValue(encryptedMessageData, for: transferCharacteristic, type: .withoutResponse)
         }
         
         os_log("Unable to write message to peripheral")
@@ -150,11 +152,12 @@ extension CentralController: CBPeripheralDelegate {
             cleanup()
             return
         }
-        
-        guard let characteristicData = characteristic.value,
-              let stringFromData = String(data: characteristicData, encoding: .utf8) else { return }
-        os_log("Received %d bytes: %s", characteristicData.count, stringFromData)
-        publishedMessages.append(Message(content: stringFromData, user: User(name: "peripheral", isCurrentUser: false)))
+
+        let characteristicDataArray = [UInt8](characteristic.value!)
+        let decryptedText = decrypt(cipherBytes: characteristicDataArray)
+
+        os_log("Central: Received %d bytes: %s", decryptedText.count, decryptedText)
+        publishedMessages.append(Message(content: decryptedText, user: User(name: "peripheral", isCurrentUser: false)))
     }
     
     func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
