@@ -9,6 +9,8 @@ import android.content.Context
 import android.os.ParcelUuid
 import android.util.Log
 import io.mosip.greetings.chat.ChatManager
+import uniffi.identity.decrypt
+import uniffi.identity.encrypt
 import java.util.*
 
 // Sequence of actions
@@ -159,15 +161,15 @@ class Peripheral : ChatManager {
                 offset,
                 value
             )
-            Log.d(
-                "BLE Peripheral",
-                "onCharacteristicWriteRequest characteristic=" + characteristic.uuid + " value=" + Arrays.toString(
-                    value
-                )
-            )
+
 
             if(value != null) {
-                 onMessageReceived(String(value))
+                val decryptedMsg = decrypt(value.toUByteArray().asList())
+                Log.d(
+                    "BLE Peripheral",
+                    "onCharacteristicWriteRequest characteristic=" + characteristic.uuid + " value=" + decryptedMsg
+                )
+                onMessageReceived(decryptedMsg)
             }
 
             if(responseNeeded) {
@@ -233,7 +235,8 @@ class Peripheral : ChatManager {
             .getService(serviceUUID)
             .getCharacteristic(READ_MESSAGE_CHAR_UUID)
 
-        output.setValue(message)
+        val encryptedMsg = encrypt(message)
+        output.setValue(encryptedMsg.toUByteArray().toByteArray())
 
         if(centralDevice != null) {
             Log.i("BLE Peripheral", "Sent notification to device $centralDevice from ${output.uuid}")

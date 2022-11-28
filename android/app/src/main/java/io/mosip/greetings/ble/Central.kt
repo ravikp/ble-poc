@@ -8,6 +8,8 @@ import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
 import io.mosip.greetings.chat.ChatManager
+import uniffi.identity.decrypt
+import uniffi.identity.encrypt
 import java.nio.charset.Charset
 
 // Sequence of actions
@@ -43,8 +45,9 @@ class Central : ChatManager {
             characteristic: BluetoothGattCharacteristic,
         ) {
             super.onCharacteristicChanged(gatt, characteristic)
-            Log.i("BLE Central", "Characteristic changed to ${String(characteristic.value)}")
-            onMessageReceived(String(characteristic.value))
+            val decryptedMsg = decrypt(characteristic.value.toUByteArray().asList())
+            Log.i("BLE Central", "Characteristic changed to ${decryptedMsg}")
+            onMessageReceived(decryptedMsg)
         }
 
         override fun onDescriptorWrite(
@@ -182,8 +185,9 @@ class Central : ChatManager {
 
         val service = bluetoothGatt.getService(Peripheral.serviceUUID)
         val writeChar = service.getCharacteristic(Peripheral.WRITE_MESSAGE_CHAR_UUID)
-        val value = message.toByteArray(Charset.defaultCharset())
-        writeChar.value = value
+//        val value = message.toByteArray(Charset.defaultCharset())
+        val encryptedMsg = encrypt(message)
+        writeChar.value = encryptedMsg.toUByteArray().toByteArray()
         writeChar.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
         val status = bluetoothGatt.writeCharacteristic(writeChar)
         Log.i("BLE Central", "Sent message to peripheral: $status")
