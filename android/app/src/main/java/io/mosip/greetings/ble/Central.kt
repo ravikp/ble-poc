@@ -2,6 +2,7 @@ package io.mosip.greetings.ble
 
 import android.bluetooth.*
 import android.bluetooth.le.*
+import android.bluetooth.le.ScanSettings.SCAN_MODE_LOW_LATENCY
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
@@ -218,7 +219,7 @@ class Central : ChatManager {
 
         bluetoothLeScanner.startScan(
             mutableListOf(filter),
-            ScanSettings.Builder().build(),
+            ScanSettings.Builder().setScanMode(SCAN_MODE_LOW_LATENCY).build(),
             leScanCallback
         )
     }
