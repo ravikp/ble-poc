@@ -128,8 +128,18 @@ class Central : ChatManager {
     }
 
     private val leScanCallback: ScanCallback = object : ScanCallback() {
+
+        // Scenario 1: Android 11 and Android 11
+                // serviceData -> {uuid -> adv data + scan resp} | TODO: Why is the serviceData is coming different?
+                // bytes -> adv data + scan resp + meta
+        // Scenario 2: Android 11 (Peripheral) -> Android 12 (Central)
+                // serviceData -> {uuid -> scan resp}
+                // bytes -> adv data + scan resp + meta
+        // Scenario 3: Android 12 (Peripheral) -> Android 9 (Central)
+                // serviceData -> {uuid -> scan resp}
+                // bytes -> adv data + scan resp + meta
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            Log.i("BLE Central", "Found the device: $result")
+            Log.i("BLE Central", "Found the device: $result. The bytes are: ${result.scanRecord?.bytes?.toUByteArray()}")
             stopScan()
 
             super.onScanResult(callbackType, result)

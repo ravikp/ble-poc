@@ -53,22 +53,33 @@ class Peripheral : ChatManager {
 
         val service = getService()
         val settings = advertiseSettings()
-        val data = advertiseData(service)
+
+        //max 20bytes in advertisement
+        val advertisementPayload: ByteArray = (21..40).map { it.toByte() }.toByteArray()
+
+        //max 23bytes in scan response
+        val scanResponsePayload: ByteArray = (61..83).map { it.toByte() }.toByteArray()
+
+        val advertisementData = advertiseData(service, advertisementPayload)
+        val scanResponse = advertiseData(service, scanResponsePayload)
+
         this.onConnect = onConnect
         this.updateLoadingText = updateLoadingText
 
-        advertiser.startAdvertising(settings, data, advertisingCallback)
-        Log.i("BLE Peripheral", "Started advertising: $data")
+        advertiser.startAdvertising(settings, advertisementData,scanResponse, advertisingCallback)
+        Log.i("BLE Peripheral", "Started advertising: $advertisementData")
     }
 
     fun stop() {
         advertiser.stopAdvertising(advertisingCallback)
     }
 
-    private fun advertiseData(service: BluetoothGattService): AdvertiseData? {
+    private fun advertiseData(service: BluetoothGattService, payload: ByteArray): AdvertiseData? {
+        val parcelUuid = ParcelUuid(service.uuid)
         return AdvertiseData.Builder()
-            .setIncludeDeviceName(true)
-            .addServiceUuid(ParcelUuid(service.uuid))
+            .setIncludeDeviceName(false)
+            .addServiceUuid(parcelUuid)
+            .addServiceData(parcelUuid, payload)
             .build()
     }
 
