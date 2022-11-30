@@ -139,7 +139,13 @@ class Central : ChatManager {
                 // serviceData -> {uuid -> scan resp}
                 // bytes -> adv data + scan resp + meta
         override fun onScanResult(callbackType: Int, result: ScanResult) {
+            val advertisementPayload = result.scanRecord?.getServiceData(ParcelUuid(Peripheral.serviceUUID))?.toUByteArray()
+            val scanResponsePayload = result.scanRecord?.getServiceData(ParcelUuid(Peripheral.scanResponseUUID))?.toUByteArray()
+
             Log.i("BLE Central", "Found the device: $result. The bytes are: ${result.scanRecord?.bytes?.toUByteArray()}")
+            Log.i("BLE Central", "PART: ADV_DATA: $result. The bytes are: $advertisementPayload")
+            Log.i("BLE Central", "PART: SCN_DATA: $result. The bytes are: $scanResponsePayload")
+
             stopScan()
 
             super.onScanResult(callbackType, result)

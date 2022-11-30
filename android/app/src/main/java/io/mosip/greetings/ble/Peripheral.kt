@@ -28,6 +28,7 @@ class Peripheral : ChatManager {
         @Volatile
         private lateinit var instance: Peripheral
         val serviceUUID: UUID = UUIDHelper.uuidFromString("AB29")
+        val scanResponseUUID: UUID = UUIDHelper.uuidFromString("AB2A")
         val WRITE_MESSAGE_CHAR_UUID = UUIDHelper.uuidFromString("2031")
         val READ_MESSAGE_CHAR_UUID = UUIDHelper.uuidFromString("2032")
 
@@ -60,8 +61,8 @@ class Peripheral : ChatManager {
         //max 23bytes in scan response
         val scanResponsePayload: ByteArray = (61..83).map { it.toByte() }.toByteArray()
 
-        val advertisementData = advertiseData(service, advertisementPayload)
-        val scanResponse = advertiseData(service, scanResponsePayload)
+        val advertisementData = advertiseData(service.uuid, advertisementPayload)
+        val scanResponse = advertiseData(scanResponseUUID, scanResponsePayload)
 
         this.onConnect = onConnect
         this.updateLoadingText = updateLoadingText
@@ -74,8 +75,8 @@ class Peripheral : ChatManager {
         advertiser.stopAdvertising(advertisingCallback)
     }
 
-    private fun advertiseData(service: BluetoothGattService, payload: ByteArray): AdvertiseData? {
-        val parcelUuid = ParcelUuid(service.uuid)
+    private fun advertiseData(packetid: UUID?, payload: ByteArray): AdvertiseData? {
+        val parcelUuid = ParcelUuid(packetid)
         return AdvertiseData.Builder()
             .setIncludeDeviceName(false)
             .addServiceUuid(parcelUuid)
