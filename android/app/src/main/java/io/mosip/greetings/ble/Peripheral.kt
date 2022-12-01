@@ -49,6 +49,7 @@ class Peripheral : ChatManager {
             context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         val mBluetoothAdapter = bluetoothManager.adapter
         advertiser = mBluetoothAdapter.bluetoothLeAdvertiser
+        Log.i("BLE Peripheral", "Max advertisement data length: ${mBluetoothAdapter.leMaximumAdvertisingDataLength}")
 
         gattServer = bluetoothManager.openGattServer(context, gattServerCallback)
 
@@ -220,6 +221,7 @@ class Peripheral : ChatManager {
                 Log.i("BLE Peripheral", "Device got disconnected. $device $newState")
             }
         }
+
     }
 
     private val advertisingCallback = object: AdvertiseCallback(){
