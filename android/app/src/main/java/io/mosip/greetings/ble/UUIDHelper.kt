@@ -5,7 +5,9 @@ import java.util.regex.Pattern
 
 object UUIDHelper {
     // base UUID used to build 128 bit Bluetooth UUIDs
-    const val UUID_BASE = "0000XXXX-0000-1000-8000-00805f9b34fb"
+    const val UUID_BASE = "0000XXXX-5026-444A-9E0E-D6F2450F3A77"
+    const val UUID_BASE_SIG = "0000AB29-0000-1000-8000-00805f9b34fb"
+
 
     // handle 16 and 128 bit UUIDs
     fun uuidFromString(uuid: String): UUID {
@@ -20,7 +22,7 @@ object UUIDHelper {
     fun uuidToString(uuid: UUID): String {
         val longUUID = uuid.toString()
         val pattern =
-            Pattern.compile("0000(.{4})-0000-1000-8000-00805f9b34fb", Pattern.CASE_INSENSITIVE)
+            Pattern.compile("0000(.{4})-5026-444A-9E0E-D6F2450F3A77", Pattern.CASE_INSENSITIVE)
         val matcher = pattern.matcher(longUUID)
         return if (matcher.matches()) {
             matcher.group(1)
