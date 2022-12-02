@@ -6,6 +6,7 @@ import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertiseSettings
 import android.bluetooth.le.BluetoothLeAdvertiser
 import android.content.Context
+import android.os.Parcel
 import android.os.ParcelUuid
 import android.util.Log
 import io.mosip.greetings.chat.ChatManager
@@ -57,18 +58,19 @@ class Peripheral : ChatManager {
         val settings = advertiseSettings()
 
         //max 20bytes in advertisement
-        val advertisementPayload: ByteArray = (21..40).map { it.toByte() }.toByteArray()
+        val advertisementPayload: ByteArray = (21..22).map { it.toByte() }.toByteArray()
 
         //max 23bytes in scan response
         val scanResponsePayload: ByteArray = (61..83).map { it.toByte() }.toByteArray()
 
         val advertisementData = advertiseData(service.uuid, advertisementPayload)
-        val scanResponse = advertiseData(scanResponseUUID, scanResponsePayload)
+        val scanResponse = scanDataAdvertiseData(scanResponseUUID, scanResponsePayload)
 
         this.onConnect = onConnect
         this.updateLoadingText = updateLoadingText
 
-        advertiser.startAdvertising(settings, advertisementData,scanResponse, advertisingCallback)
+        advertiser.startAdvertising(settings, advertisementData, advertisingCallback)
+//        advertiser.startAdvertising(settings, advertisementData,scanResponse, advertisingCallback)
         Log.i("BLE Peripheral", "Started advertising: $advertisementData")
     }
 
@@ -77,6 +79,15 @@ class Peripheral : ChatManager {
     }
 
     private fun advertiseData(packetid: UUID?, payload: ByteArray): AdvertiseData? {
+        val parcelUuid = ParcelUuid(packetid)
+        return AdvertiseData.Builder()
+            .setIncludeDeviceName(false)
+            .addServiceUuid(parcelUuid)
+            .addServiceData(ParcelUuid.fromString(UUIDHelper.UUID_BASE_SIG), payload)
+            .build()
+    }
+
+    private fun scanDataAdvertiseData(packetid: UUID?, payload: ByteArray): AdvertiseData? {
         val parcelUuid = ParcelUuid(packetid)
         return AdvertiseData.Builder()
             .setIncludeDeviceName(false)
