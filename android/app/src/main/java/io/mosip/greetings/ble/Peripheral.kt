@@ -27,8 +27,8 @@ class Peripheral : ChatManager {
     companion object {
         @Volatile
         private lateinit var instance: Peripheral
-        val serviceUUID: UUID = UUIDHelper.uuidFromString("AB29")
-        val scanResponseUUID: UUID = UUIDHelper.uuidFromString("AB2A")
+        val serviceUUID: UUID = UUIDHelper.uuidFromString("0001")
+        val scanResponseUUID: UUID = UUIDHelper.uuidFromString("0001")
         val WRITE_MESSAGE_CHAR_UUID = UUIDHelper.uuidFromString("2031")
         val READ_MESSAGE_CHAR_UUID = UUIDHelper.uuidFromString("2032")
 
@@ -56,10 +56,10 @@ class Peripheral : ChatManager {
         val settings = advertiseSettings()
 
         //max 20bytes in advertisement
-        val advertisementPayload: ByteArray = (21..40).map { it.toByte() }.toByteArray()
+        val advertisementPayload: ByteArray = (21..22).map { it.toByte() }.toByteArray()
 
         //max 23bytes in scan response
-        val scanResponsePayload: ByteArray = (61..83).map { it.toByte() }.toByteArray()
+        val scanResponsePayload: ByteArray = (61..62).map { it.toByte() }.toByteArray()
 
         val advertisementData = advertiseData(service.uuid, advertisementPayload)
         val scanResponse = advertiseData(scanResponseUUID, scanResponsePayload)
@@ -221,6 +221,8 @@ class Peripheral : ChatManager {
             }
         }
     }
+
+
 
     private val advertisingCallback = object: AdvertiseCallback(){
         override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
