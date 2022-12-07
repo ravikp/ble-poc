@@ -9,9 +9,12 @@ import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
 import io.mosip.greetings.chat.ChatManager
+import io.mosip.greetings.cryptography.CipherBox
+import io.mosip.greetings.cryptography.CryptoBox
+import io.mosip.greetings.cryptography.CryptoBoxImpl
 import uniffi.identity.decrypt
 import uniffi.identity.encrypt
-import java.nio.charset.Charset
+
 
 // Sequence of actions
 // Scanning -> Connecting -> Discover Services -> Subscribes to Read Characteristic

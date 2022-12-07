@@ -1,6 +1,9 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+
+    id 'kotlin-android-extensions' // New
+    id 'kotlin-android' // New
 }
 
 android {
@@ -49,6 +52,8 @@ android {
 
 dependencies {
     implementation "net.java.dev.jna:jna:5.7.0@aar"
+    implementation 'org.bouncycastle:bcpkix-jdk15to18:1.68'
+    implementation 'org.bouncycastle:bcprov-jdk15to18:1.68'
 
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'androidx.appcompat:appcompat:1.4.1'
