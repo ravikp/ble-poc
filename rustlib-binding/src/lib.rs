@@ -17,7 +17,7 @@ use x25519_dalek::{EphemeralSecret, PublicKey, StaticSecret};
 use std::sync::{Arc, Mutex};
 
 // ************************************************************************
-// Below implementation is as per the spec required cryptography
+// Below implementation is the required cryptography as per spec
 // However the API can still be polished based on higher layer requirement
 // ************************************************************************
 
@@ -89,44 +89,44 @@ mod tests {
 
     #[test]
     fn int_check_enc_between_devices() {
-        let key_pair1 = Arc::new(KeyPair::new());
-        let pub_key1 = key_pair1.get_pub_key();
-        dbg!(&pub_key1);
+        let key_pair_wallet = Arc::new(KeyPair::new());
+        let pub_key_wallet = key_pair_wallet.get_pub_key();
+        dbg!(&pub_key_wallet);
 
-        let key_pair2 = Arc::new(KeyPair::new());
-        let pub_key2 = key_pair2.get_pub_key();
-        dbg!(&pub_key2);
+        let key_pair_verifier = Arc::new(KeyPair::new());
+        let pub_key_verifier = key_pair_verifier.get_pub_key();
+        dbg!(&pub_key_verifier);
 
-        let shared_secret1 = key_pair1.get_shared_secret(pub_key2);
-        dbg!(&shared_secret1);
+        let shared_secret_wallet = key_pair_wallet.get_shared_secret(pub_key_verifier);
+        dbg!(&shared_secret_wallet);
 
-        let hkdf_key1 = get_hkdf_key(shared_secret1, "INJI".to_string());
-        dbg!(&hkdf_key1);
+        let hkdf_key_wallet = get_hkdf_key(shared_secret_wallet, "INJI".to_string());
+        dbg!(&hkdf_key_wallet);
 
-        let shared_secret2 = key_pair2.get_shared_secret(pub_key1);
-        dbg!(&shared_secret2);
+        let shared_secret_verifier = key_pair_verifier.get_shared_secret(pub_key_wallet);
+        dbg!(&shared_secret_verifier);
 
-        let hkdf_key2 = get_hkdf_key(shared_secret2, "INJI".to_string());
-        dbg!(&hkdf_key2);
+        let hkdf_key_verifier = get_hkdf_key(shared_secret_verifier, "INJI".to_string());
+        dbg!(&hkdf_key_verifier);
 
         // send from 1 to 2
         let plain_text = "VerifiablePresentationRequest";
-        let enc_data = aes_gcm_encrypt(hkdf_key1.clone(), plain_text.to_string());
-        let dec_text = aes_gcm_decrypt(hkdf_key2.clone(), enc_data);
+        let enc_data = aes_gcm_encrypt(hkdf_key_wallet.clone(), plain_text.to_string());
+        let dec_text = aes_gcm_decrypt(hkdf_key_verifier.clone(), enc_data);
         assert_eq!(dec_text, plain_text);
 
         // send from 2 to 1
         let plain_text = "VerifiablePresentationResponse";
-        let enc_data = aes_gcm_encrypt(hkdf_key2.clone(), plain_text.to_string());
-        let dec_text = aes_gcm_decrypt(hkdf_key1, enc_data);
+        let enc_data = aes_gcm_encrypt(hkdf_key_verifier.clone(), plain_text.to_string());
+        let dec_text = aes_gcm_decrypt(hkdf_key_wallet, enc_data);
 
         assert_eq!(dec_text, plain_text);
     }
 }
 
 // ************************************************************************
-// Below is the encrypt and decrypt needed for Android and IOS codebases
-// This implementation is with static hardcoded AES key for Demo
+// Below is the encrypt and decrypt functions needed for Android and IOS codebases
+// This implementation is with hardcoded AES key used only for Demo
 // ************************************************************************
 use lazy_static::lazy_static;
 
@@ -164,12 +164,9 @@ fn decrypt(cipher_bytes: Vec<u8>) -> String {
 
 // ************************************************************************
 // This is an attempt to use EphemeralKey Object from x25519 lib.
-// This has compiler time limitations
+// This has compile time issues due to limitations from the lib
 // ************************************************************************
 
-// fn newKeyPair() -> Arc<KeyPair> {
-//     Arc::new(KeyPair::new())
-// }
 // static X25519_SECRET_KEY: Arc<Mutex<Option<EphemeralSecret>>> = Arc::new(Mutex::new(None));
 
 // fn get_shareable_key_details(theirs_pub: Vec<u8>) -> Vec<u8> {
