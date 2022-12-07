@@ -12,7 +12,7 @@ public class CryptoBoxBuilder {
     public CryptoBox build(){
         if(secureRandomSeed == null)
             throw new RuntimeException("Cannot create cryptobox without secure random seed");
-        
+
         return new CryptoBoxImpl(secureRandomSeed);
     }
 }
