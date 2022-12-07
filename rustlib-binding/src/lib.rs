@@ -109,16 +109,16 @@ mod tests {
         let hkdf_key_verifier = get_hkdf_key(shared_secret_verifier, "INJI".to_string());
         dbg!(&hkdf_key_verifier);
 
-        // send from 1 to 2
+        // send from Verifier to Wallet
         let plain_text = "VerifiablePresentationRequest";
-        let enc_data = aes_gcm_encrypt(hkdf_key_wallet.clone(), plain_text.to_string());
-        let dec_text = aes_gcm_decrypt(hkdf_key_verifier.clone(), enc_data);
+        let enc_data = aes_gcm_encrypt(hkdf_key_verifier.clone(), plain_text.to_string());
+        let dec_text = aes_gcm_decrypt(hkdf_key_wallet.clone(), enc_data);
         assert_eq!(dec_text, plain_text);
 
-        // send from 2 to 1
+        // send from Wallet to Verifier
         let plain_text = "VerifiablePresentationResponse";
-        let enc_data = aes_gcm_encrypt(hkdf_key_verifier.clone(), plain_text.to_string());
-        let dec_text = aes_gcm_decrypt(hkdf_key_wallet, enc_data);
+        let enc_data = aes_gcm_encrypt(hkdf_key_wallet.clone(), plain_text.to_string());
+        let dec_text = aes_gcm_decrypt(hkdf_key_verifier, enc_data);
 
         assert_eq!(dec_text, plain_text);
     }
