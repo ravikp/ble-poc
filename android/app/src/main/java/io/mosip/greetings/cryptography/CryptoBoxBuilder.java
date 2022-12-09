@@ -5,8 +5,9 @@ import java.security.SecureRandom;
 public class CryptoBoxBuilder {
 
     private SecureRandom secureRandomSeed;
-    public void setSecureRandomSeed(SecureRandom secureRandomSeed) {
+    public CryptoBoxBuilder setSecureRandomSeed(SecureRandom secureRandomSeed) {
         this.secureRandomSeed = secureRandomSeed;
+        return this;
     }
 
     public CryptoBox build(){

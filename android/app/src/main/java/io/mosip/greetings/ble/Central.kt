@@ -11,14 +11,18 @@ import android.util.Log
 import io.mosip.greetings.chat.ChatManager
 import io.mosip.greetings.cryptography.CipherBox
 import io.mosip.greetings.cryptography.CryptoBox
-import io.mosip.greetings.cryptography.CryptoBoxImpl
+import io.mosip.greetings.cryptography.CryptoBoxBuilder
 import uniffi.identity.decrypt
 import uniffi.identity.encrypt
+import java.nio.charset.Charset
+import java.security.SecureRandom
 
 
 // Sequence of actions
 // Scanning -> Connecting -> Discover Services -> Subscribes to Read Characteristic
 class Central : ChatManager {
+    private lateinit var cipherBox: CipherBox
+    private lateinit var cryptoBox: CryptoBox
     private lateinit var updateLoadingText: (String) -> Unit
     private var scanning: Boolean = false
     private var connected: Boolean = false
@@ -49,9 +53,10 @@ class Central : ChatManager {
             characteristic: BluetoothGattCharacteristic,
         ) {
             super.onCharacteristicChanged(gatt, characteristic)
-            val decryptedMsg = decrypt(characteristic.value.toUByteArray().asList())
-            Log.i("BLE Central", "Characteristic changed to ${decryptedMsg}")
-            onMessageReceived(decryptedMsg)
+            val decryptedMsg = cipherBox.decrypt(characteristic.value)
+            Log.i("BLE Central", "Characteristic changed to ${String(decryptedMsg)}")
+
+            onMessageReceived(String( decryptedMsg))
         }
 
         override fun onDescriptorWrite(
@@ -63,6 +68,7 @@ class Central : ChatManager {
 
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.i("BLE Central", "Subscribed to read messages from peripheral")
+                sendPublicKey()
                 updateLoadingText("Subscribed to peripheral")
             } else {
                 onConnectionFailure("Failed to Subscribe to read messages from peripheral. Please retry connecting.")
@@ -75,7 +81,7 @@ class Central : ChatManager {
         override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
             super.onMtuChanged(gatt, mtu, status)
             onDeviceConnected()
-            Log.i("BLE Central", "Successfully changed mtu size: " +  mtu)
+            Log.i("BLE Central", "Successfully changed mtu size: $mtu")
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
@@ -142,12 +148,15 @@ class Central : ChatManager {
                 // serviceData -> {uuid -> scan resp}
                 // bytes -> adv data + scan resp + meta
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            val advertisementPayload = result.scanRecord?.getServiceData(ParcelUuid(Peripheral.serviceUUID))?.toUByteArray()
-            val scanResponsePayload = result.scanRecord?.getServiceData(ParcelUuid(Peripheral.scanResponseUUID))?.toUByteArray()
+            val advertisementPayload = result.scanRecord?.getServiceData(ParcelUuid(Peripheral.serviceUUID))
+            val scanResponsePayload = result.scanRecord?.getServiceData(ParcelUuid(Peripheral.scanResponseUUID))
 
             Log.i("BLE Central", "Found the device: $result. The bytes are: ${result.scanRecord?.bytes?.toUByteArray()}")
-            Log.i("BLE Central", "PART: ADV_DATA: $result. The bytes are: $advertisementPayload")
-            Log.i("BLE Central", "PART: SCN_DATA: $result. The bytes are: $scanResponsePayload")
+            Log.i("BLE Central", "PART: ADV_DATA: $result. The bytes are: ${advertisementPayload!!.toUByteArray()}")
+            Log.i("BLE Central", "PART: SCN_DATA: $result. The bytes are: ${scanResponsePayload!!.toUByteArray()}")
+            val publicKey = advertisementPayload!! + scanResponsePayload!!
+            cryptoBox = CryptoBoxBuilder().setSecureRandomSeed(SecureRandom()).build()
+            cipherBox = cryptoBox.createCipherBox(publicKey)
 
             stopScan()
 
@@ -205,12 +214,27 @@ class Central : ChatManager {
 
         val service = bluetoothGatt.getService(Peripheral.serviceUUID)
         val writeChar = service.getCharacteristic(Peripheral.WRITE_MESSAGE_CHAR_UUID)
-//        val value = message.toByteArray(Charset.defaultCharset())
-        val encryptedMsg = encrypt(message)
-        writeChar.value = encryptedMsg.toUByteArray().toByteArray()
+        val encryptedMsg = cipherBox.encrypt(message.toByteArray(Charset.defaultCharset()))
+        writeChar.value = encryptedMsg
         writeChar.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
         val status = bluetoothGatt.writeCharacteristic(writeChar)
         Log.i("BLE Central", "Sent message to peripheral: $status")
+
+        return null
+    }
+
+    fun sendPublicKey(): String? {
+        if (!connected) {
+            Log.e("BLE Central", "Peripheral is not connected")
+            return "Peripheral is not connected"
+        }
+        val service = bluetoothGatt.getService(Peripheral.serviceUUID)
+        val identifyRequestChar = service.getCharacteristic(Peripheral.IDENTIFY_REQ_CHAR_UUID)
+        val message = cryptoBox.publicKey
+        identifyRequestChar.value = message
+        identifyRequestChar.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+        val status = bluetoothGatt.writeCharacteristic(identifyRequestChar)
+        Log.i("BLE Central", "Sent public key to peripheral: $status")
 
         return null
     }
