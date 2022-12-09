@@ -15,10 +15,13 @@ class CentralController: NSObject, ObservableObject {
     @Published var peripherals: [CBPeripheral] = []
     @Published var transferCharacteristic: CBCharacteristic?
     @Published var writeCharacteristic: CBCharacteristic?
+    @Published var identifyRequestCharacteristic: CBCharacteristic?
     @Published var connectedToPeripheral = false
     @Published var connectToPeripheralError: Error?
     @Published var publishedMessages: [Message] = []
     @Published var centralUser: User?
+    private var cipherBox: CipherBox?
+    private  var cryptoBox: CryptoBox?
     
     var data = Data()
     
@@ -46,16 +49,35 @@ class CentralController: NSObject, ObservableObject {
         
         if connectedPeripheral.canSendWriteWithoutResponse {
             let mtu = connectedPeripheral.maximumWriteValueLength(for: .withoutResponse)
-            let encryptedMessage = encrypt(plainText: message)
+            let encryptedMessage = cipherBox!.encrypt(message: message)
             let bytesToCopy: size_t = min(mtu, encryptedMessage.count)
             
-            let encryptedMessageData = Data(bytes: encryptedMessage, count: encryptedMessage.count)
-            
             os_log("Central: Writing %d bytes: %s with MTU: %d", bytesToCopy, String(describing: message), mtu)
-            connectedPeripheral.writeValue(encryptedMessageData, for: transferCharacteristic, type: .withoutResponse)
+            connectedPeripheral.writeValue(encryptedMessage, for: transferCharacteristic, type: .withoutResponse)
         }
     }
     
+    func sendPublicKey() {
+        guard let connectedPeripheral = connectedPeripheral,
+              let transferCharacteristic = identifyRequestCharacteristic
+        else {
+            os_log("Unable to write to periperhal")
+            return
+        }
+        
+        if connectedPeripheral.canSendWriteWithoutResponse {
+            let mtu = connectedPeripheral.maximumWriteValueLength(for: .withoutResponse)
+            let publicKey = cryptoBox!.getPublicKey()
+            let publicKeyData = publicKey.rawRepresentation.self
+            let bytesToCopy: size_t = min(mtu, publicKeyData.count)
+            let messageData = publicKeyData
+            
+            os_log("Central: Writing %d bytes: %s with MTU: %d", bytesToCopy, String(describing: messageData), mtu)
+            connectedPeripheral.writeValue(messageData, for: transferCharacteristic, type: .withoutResponse)
+        }
+    }
+    
+
     func cleanup() {
         
         guard let connectedPeripheral = connectedPeripheral, case .connected = connectedPeripheral.state else { return }
@@ -90,6 +112,15 @@ extension CentralController: CBCentralManagerDelegate {
             os_log("Appending peripheral - %@ to list", String(describing: peripheral.name))
             os_log("Scan Response data - %s", String(data: data as! Data, encoding: .utf8) ?? "No Scan Response Data")
             peripherals.append(peripheral)
+            
+            let scanResponseData = dataDict?[CBUUID(string: "AB2A")]  as! Data
+            let advertisementData = dataDict?[CBUUID(string: "AB29")]  as! Data
+            let publicKeyData =  advertisementData + scanResponseData
+            
+            cryptoBox = CryptoBox()
+            cipherBox = cryptoBox!.createCipherBox(data: publicKeyData)
+            
+            
         }
         os_log("%@", advertisementData)
     }
@@ -129,7 +160,7 @@ extension CentralController: CBPeripheralDelegate {
         
         guard let peripheralServices = peripheral.services else { return }
         for service in peripheralServices {
-            peripheral.discoverCharacteristics([TransferService.characteristicUUID, TransferService.writeCharacteristic], for: service)
+            peripheral.discoverCharacteristics([TransferService.characteristicUUID, TransferService.identifyRequestCharacteristic, TransferService.writeCharacteristic], for: service)
         }
     }
     
@@ -151,6 +182,11 @@ extension CentralController: CBPeripheralDelegate {
                 self.writeCharacteristic = characteristic
                 // No notify required, right?
             }
+            if characteristic.uuid == TransferService.identifyRequestCharacteristic {
+                self.identifyRequestCharacteristic = characteristic
+                sendPublicKey()
+                print(characteristic)
+            }
         }
     }
     
@@ -165,9 +201,9 @@ extension CentralController: CBPeripheralDelegate {
             
         }
         let characteristicDataArray = [UInt8](characteristicData)
-        let decryptedText = decrypt(cipherBytes: characteristicDataArray)
-        os_log("Central: Received %d bytes: %s", decryptedText.count, decryptedText)
-        publishedMessages.append(Message(content: decryptedText, user: User(name: "peripheral", isCurrentUser: false)))
+        let decryptedText = cipherBox?.decrypt(encryptedMessage: characteristicDataArray)
+        os_log("Central: Received %d bytes: %s", decryptedText!.count, decryptedText!)
+        publishedMessages.append(Message(content: decryptedText!, user: User(name: "peripheral", isCurrentUser: false)))
         }
     }
     
