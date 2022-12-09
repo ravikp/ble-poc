@@ -6,17 +6,21 @@ import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertiseSettings
 import android.bluetooth.le.BluetoothLeAdvertiser
 import android.content.Context
-import android.os.Parcel
 import android.os.ParcelUuid
 import android.util.Log
 import io.mosip.greetings.chat.ChatManager
-import uniffi.identity.decrypt
-import uniffi.identity.encrypt
+import io.mosip.greetings.cryptography.CipherBox
+import io.mosip.greetings.cryptography.CryptoBox
+import io.mosip.greetings.cryptography.CryptoBoxBuilder
+import java.nio.charset.Charset
+import java.security.SecureRandom
 import java.util.*
 
 // Sequence of actions
 // Broadcasting/Advertising -> Connecting -> Indicate Central when data available to read
 class Peripheral : ChatManager {
+    private lateinit var cipherBox: CipherBox
+    private lateinit var cryptoBox: CryptoBox
     private lateinit var updateLoadingText: (String) -> Unit
     private lateinit var advertiser: BluetoothLeAdvertiser
     private lateinit var gattServer: BluetoothGattServer
@@ -31,6 +35,7 @@ class Peripheral : ChatManager {
         val serviceUUID: UUID = UUIDHelper.uuidFromString("AB29")
         val scanResponseUUID: UUID = UUIDHelper.uuidFromString("AB2A")
         val WRITE_MESSAGE_CHAR_UUID = UUIDHelper.uuidFromString("2031")
+        val IDENTIFY_REQ_CHAR_UUID = UUIDHelper.uuidFromString("2033")
         val READ_MESSAGE_CHAR_UUID = UUIDHelper.uuidFromString("2032")
 
         fun getInstance(): Peripheral {
@@ -56,21 +61,18 @@ class Peripheral : ChatManager {
 
         val service = getService()
         val settings = advertiseSettings()
+        
+        cryptoBox = CryptoBoxBuilder().setSecureRandomSeed(SecureRandom()).build()
+        val publicKey = cryptoBox.publicKey
 
-        //max 20bytes in advertisement
-        val advertisementPayload: ByteArray = (21..22).map { it.toByte() }.toByteArray()
 
-        //max 23bytes in scan response
-        val scanResponsePayload: ByteArray = (61..83).map { it.toByte() }.toByteArray()
-
-        val advertisementData = advertiseData(service.uuid, advertisementPayload)
-        val scanResponse = scanDataAdvertiseData(scanResponseUUID, scanResponsePayload)
+        val advertisementData = createAdvertiseData(service.uuid, publicKey.copyOfRange(0,16))
+        val scanResponse = createScanResponse(scanResponseUUID, publicKey.copyOfRange(16,32))
 
         this.onConnect = onConnect
         this.updateLoadingText = updateLoadingText
 
-        advertiser.startAdvertising(settings, advertisementData, advertisingCallback)
-//        advertiser.startAdvertising(settings, advertisementData,scanResponse, advertisingCallback)
+        advertiser.startAdvertising(settings, advertisementData,scanResponse, advertisingCallback)
         Log.i("BLE Peripheral", "Started advertising: $advertisementData")
     }
 
@@ -78,20 +80,19 @@ class Peripheral : ChatManager {
         advertiser.stopAdvertising(advertisingCallback)
     }
 
-    private fun advertiseData(packetid: UUID?, payload: ByteArray): AdvertiseData? {
-        val parcelUuid = ParcelUuid(packetid)
+    private fun createAdvertiseData(packetId: UUID?, payload: ByteArray): AdvertiseData? {
+        val parcelUuid = ParcelUuid(packetId)
         return AdvertiseData.Builder()
             .setIncludeDeviceName(false)
             .addServiceUuid(parcelUuid)
-            .addServiceData(ParcelUuid.fromString(UUIDHelper.UUID_BASE_SIG), payload)
+            .addServiceData(parcelUuid, payload)
             .build()
     }
 
-    private fun scanDataAdvertiseData(packetid: UUID?, payload: ByteArray): AdvertiseData? {
-        val parcelUuid = ParcelUuid(packetid)
+    private fun createScanResponse(packetId: UUID?, payload: ByteArray): AdvertiseData? {
+        val parcelUuid = ParcelUuid(packetId)
         return AdvertiseData.Builder()
             .setIncludeDeviceName(false)
-            .addServiceUuid(parcelUuid)
             .addServiceData(parcelUuid, payload)
             .build()
     }
@@ -115,6 +116,11 @@ class Peripheral : ChatManager {
             BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE or BluetoothGattCharacteristic.PROPERTY_WRITE,
             BluetoothGattCharacteristic.PERMISSION_WRITE)
 
+        val identifyChar = BluetoothGattCharacteristic(
+            IDENTIFY_REQ_CHAR_UUID,
+            BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE or BluetoothGattCharacteristic.PROPERTY_WRITE,
+            BluetoothGattCharacteristic.PERMISSION_WRITE)
+
         val readChar = BluetoothGattCharacteristic(
             READ_MESSAGE_CHAR_UUID,
             BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_INDICATE,
@@ -127,6 +133,7 @@ class Peripheral : ChatManager {
 
         service.addCharacteristic(writeChar)
         service.addCharacteristic(readChar)
+        service.addCharacteristic(identifyChar)
 
         val status = gattServer.addService(service)
         Log.i("BLE Peripheral","Added service $status" )
@@ -135,6 +142,7 @@ class Peripheral : ChatManager {
     }
 
     private val gattServerCallback: BluetoothGattServerCallback = object : BluetoothGattServerCallback(){
+
         override fun onDescriptorWriteRequest(
             device: BluetoothDevice?,
             requestId: Int,
@@ -176,27 +184,21 @@ class Peripheral : ChatManager {
             offset: Int,
             value: ByteArray?
         ) {
-            super.onCharacteristicWriteRequest(
-                device,
-                requestId,
-                characteristic,
-                preparedWrite,
-                responseNeeded,
-                offset,
-                value
-            )
-
-
-            if(value != null) {
-                val decryptedMsg = decrypt(value.toUByteArray().asList())
-                Log.d(
-                    "BLE Peripheral",
-                    "onCharacteristicWriteRequest characteristic=" + characteristic.uuid + " value=" + decryptedMsg
-                )
-                onMessageReceived(decryptedMsg)
+            super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value)
+            if (value != null) {
+                if (characteristic.uuid == IDENTIFY_REQ_CHAR_UUID) {
+                    Log.d("BLE Peripheral", "Public Key from Central. Characteristic=" + characteristic.uuid + " value=" + value.toUByteArray())
+                    cipherBox = cryptoBox.createCipherBox(value)
+                }
+                else {
+                    val decryptedMsg = cipherBox.decrypt(value)
+                    Log.d("BLE Peripheral","Msg from Central. Characteristic=" + characteristic.uuid + " Message = " + String(decryptedMsg)
+                    )
+                    onMessageReceived(String(decryptedMsg))
+                }
             }
 
-            if(responseNeeded) {
+            if (responseNeeded) {
                 gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
             }
         }
@@ -260,8 +262,8 @@ class Peripheral : ChatManager {
             .getService(serviceUUID)
             .getCharacteristic(READ_MESSAGE_CHAR_UUID)
 
-        val encryptedMsg = encrypt(message)
-        output.setValue(encryptedMsg.toUByteArray().toByteArray())
+        val encryptedMsg = cipherBox.encrypt(message.toByteArray(Charset.defaultCharset()))
+        output.setValue(encryptedMsg)
 
         if(centralDevice != null) {
             Log.i("BLE Peripheral", "Sent notification to device $centralDevice from ${output.uuid}")
