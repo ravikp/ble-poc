@@ -1,7 +1,10 @@
 package io.mosip.greetings.cryptography;
 
-public interface CryptoBox {
+interface CryptoBox {
+    int INITIALISATION_VECTOR_LENGTH = 12;
     byte[] getPublicKey();
-    CipherBox createCipherBox(byte[] otherPublicKey);
+    CipherBoxPackage createCipherBoxes(byte[] otherPublicKey, String selfInfo, String receipientInfo, byte[] ivBytes);
 }
+
+
 

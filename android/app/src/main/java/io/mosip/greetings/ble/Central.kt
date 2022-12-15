@@ -9,11 +9,9 @@ import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
 import io.mosip.greetings.chat.ChatManager
-import io.mosip.greetings.cryptography.CipherBox
-import io.mosip.greetings.cryptography.CryptoBox
-import io.mosip.greetings.cryptography.CryptoBoxBuilder
-import uniffi.identity.decrypt
-import uniffi.identity.encrypt
+import io.mosip.greetings.cryptography.SecretsTranslator
+import io.mosip.greetings.cryptography.WalletCryptoBox
+import io.mosip.greetings.cryptography.WalletCryptoBoxBuilder
 import java.nio.charset.Charset
 import java.security.SecureRandom
 
@@ -21,8 +19,11 @@ import java.security.SecureRandom
 // Sequence of actions
 // Scanning -> Connecting -> Discover Services -> Subscribes to Read Characteristic
 class Central : ChatManager {
-    private lateinit var cipherBox: CipherBox
-    private lateinit var cryptoBox: CryptoBox
+//    private lateinit var cipherBox: CipherBox
+//    private lateinit var cryptoBox: CryptoBox
+    private lateinit var walletCryptoBox: WalletCryptoBox
+    private lateinit var secretsTranslator: SecretsTranslator
+
     private lateinit var updateLoadingText: (String) -> Unit
     private var scanning: Boolean = false
     private var connected: Boolean = false
@@ -53,7 +54,7 @@ class Central : ChatManager {
             characteristic: BluetoothGattCharacteristic,
         ) {
             super.onCharacteristicChanged(gatt, characteristic)
-            val decryptedMsg = cipherBox.decrypt(characteristic.value)
+            val decryptedMsg = secretsTranslator.decryptUponReceive(characteristic.value)
             Log.i("BLE Central", "Characteristic changed to ${String(decryptedMsg)}")
 
             onMessageReceived(String( decryptedMsg))
@@ -155,8 +156,12 @@ class Central : ChatManager {
             Log.i("BLE Central", "PART: ADV_DATA: $result. The bytes are: ${advertisementPayload!!.toUByteArray()}")
             Log.i("BLE Central", "PART: SCN_DATA: $result. The bytes are: ${scanResponsePayload!!.toUByteArray()}")
             val publicKey = advertisementPayload!! + scanResponsePayload!!
-            cryptoBox = CryptoBoxBuilder().setSecureRandomSeed(SecureRandom()).build()
-            cipherBox = cryptoBox.createCipherBox(publicKey)
+
+//            cryptoBox = CryptoBoxBuilder().setSecureRandomSeed(SecureRandom()).build()
+//            cipherBox = cryptoBox.createCipherBox(publicKey)
+
+            walletCryptoBox = WalletCryptoBoxBuilder.build(SecureRandom());
+            secretsTranslator = walletCryptoBox.buildSecretsTranslator(publicKey)
 
             stopScan()
 
@@ -214,7 +219,7 @@ class Central : ChatManager {
 
         val service = bluetoothGatt.getService(Peripheral.serviceUUID)
         val writeChar = service.getCharacteristic(Peripheral.WRITE_MESSAGE_CHAR_UUID)
-        val encryptedMsg = cipherBox.encrypt(message.toByteArray(Charset.defaultCharset()))
+        val encryptedMsg = secretsTranslator.encryptToSend(message.toByteArray(Charset.defaultCharset()))
         writeChar.value = encryptedMsg
         writeChar.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
         val status = bluetoothGatt.writeCharacteristic(writeChar)
@@ -230,7 +235,13 @@ class Central : ChatManager {
         }
         val service = bluetoothGatt.getService(Peripheral.serviceUUID)
         val identifyRequestChar = service.getCharacteristic(Peripheral.IDENTIFY_REQ_CHAR_UUID)
-        val message = cryptoBox.publicKey
+
+//        val message = cryptoBox.publicKey
+        val initializationVector:ByteArray = secretsTranslator.initializationVector()
+        val publicKey:ByteArray = walletCryptoBox.publicKey()
+
+        val message = initializationVector + publicKey
+
         identifyRequestChar.value = message
         identifyRequestChar.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
         val status = bluetoothGatt.writeCharacteristic(identifyRequestChar)
@@ -297,5 +308,4 @@ class Central : ChatManager {
 
         gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
     }
-
 }

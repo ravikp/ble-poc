@@ -2,7 +2,7 @@ package io.mosip.greetings.cryptography;
 
 import java.security.SecureRandom;
 
-public class CryptoBoxBuilder {
+class CryptoBoxBuilder {
 
     private SecureRandom secureRandomSeed;
     public CryptoBoxBuilder setSecureRandomSeed(SecureRandom secureRandomSeed) {

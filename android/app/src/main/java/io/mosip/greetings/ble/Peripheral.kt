@@ -9,9 +9,7 @@ import android.content.Context
 import android.os.ParcelUuid
 import android.util.Log
 import io.mosip.greetings.chat.ChatManager
-import io.mosip.greetings.cryptography.CipherBox
-import io.mosip.greetings.cryptography.CryptoBox
-import io.mosip.greetings.cryptography.CryptoBoxBuilder
+import io.mosip.greetings.cryptography.*
 import java.nio.charset.Charset
 import java.security.SecureRandom
 import java.util.*
@@ -19,8 +17,8 @@ import java.util.*
 // Sequence of actions
 // Broadcasting/Advertising -> Connecting -> Indicate Central when data available to read
 class Peripheral : ChatManager {
-    private lateinit var cipherBox: CipherBox
-    private lateinit var cryptoBox: CryptoBox
+    private lateinit var verifierCryptoBox: VerifierCryptoBox
+    private lateinit var secretsTranslator: SecretsTranslator
     private lateinit var updateLoadingText: (String) -> Unit
     private lateinit var advertiser: BluetoothLeAdvertiser
     private lateinit var gattServer: BluetoothGattServer
@@ -61,13 +59,10 @@ class Peripheral : ChatManager {
 
         val service = getService()
         val settings = advertiseSettings()
-        
-        cryptoBox = CryptoBoxBuilder().setSecureRandomSeed(SecureRandom()).build()
-        val publicKey = cryptoBox.publicKey
 
-
-        val advertisementData = createAdvertiseData(service.uuid, publicKey.copyOfRange(0,16))
-        val scanResponse = createScanResponse(scanResponseUUID, publicKey.copyOfRange(16,32))
+        verifierCryptoBox = VerifierCryptoBoxBuilder.build(SecureRandom());
+        val advertisementData = createAdvertiseData(service.uuid, verifierCryptoBox.publicKey().copyOfRange(0, 16))
+        val scanResponse = createScanResponse(scanResponseUUID, verifierCryptoBox.publicKey().copyOfRange(16, 32))
 
         this.onConnect = onConnect
         this.updateLoadingText = updateLoadingText
@@ -188,10 +183,14 @@ class Peripheral : ChatManager {
             if (value != null) {
                 if (characteristic.uuid == IDENTIFY_REQ_CHAR_UUID) {
                     Log.d("BLE Peripheral", "Public Key from Central. Characteristic=" + characteristic.uuid + " value=" + value.toUByteArray())
-                    cipherBox = cryptoBox.createCipherBox(value)
+//                    cipherBox = cryptoBox.createCipherBox(value)
+                    val iv = value.copyOfRange(0, 12)
+                    val walletPublicKey = value.copyOfRange(12, value.size)
+                    secretsTranslator = verifierCryptoBox.buildCommunicator(iv, walletPublicKey);
                 }
                 else {
-                    val decryptedMsg = cipherBox.decrypt(value)
+//                    val decryptedMsg = cipherBox.decrypt(value)
+                    val decryptedMsg = secretsTranslator.decryptUponReceive(value);
                     Log.d("BLE Peripheral","Msg from Central. Characteristic=" + characteristic.uuid + " Message = " + String(decryptedMsg)
                     )
                     onMessageReceived(String(decryptedMsg))
@@ -262,7 +261,7 @@ class Peripheral : ChatManager {
             .getService(serviceUUID)
             .getCharacteristic(READ_MESSAGE_CHAR_UUID)
 
-        val encryptedMsg = cipherBox.encrypt(message.toByteArray(Charset.defaultCharset()))
+        val encryptedMsg = secretsTranslator.encryptToSend(message.toByteArray(Charset.defaultCharset()))
         output.setValue(encryptedMsg)
 
         if(centralDevice != null) {
