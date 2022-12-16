@@ -10,13 +10,13 @@ verifier sending data to wallet | v->w: verifier encrypts with wk and wallet dec
  */
 class SenderTransfersOwnershipOfData implements SecretsTranslator {
     private byte[] initVector;
-    private CipherBox senderCryptoBox;
-    private CipherBox receiverCryptoBox;
+    private CipherBox senderCipherBox;
+    private CipherBox receiverCipherBox;
 
     public SenderTransfersOwnershipOfData(byte[] initVector, CipherBoxPackage cipherBoxPackage) {
         this.initVector = initVector;
-        this.senderCryptoBox = cipherBoxPackage.getSelf();
-        this.receiverCryptoBox = cipherBoxPackage.getOther();
+        this.senderCipherBox = cipherBoxPackage.getSelf();
+        this.receiverCipherBox = cipherBoxPackage.getOther();
     }
 
     @Override
@@ -26,13 +26,13 @@ class SenderTransfersOwnershipOfData implements SecretsTranslator {
 
     @Override
     public byte[] encryptToSend(byte[] plainText) {
-        byte[] encrypt = receiverCryptoBox.encrypt(plainText);
+        byte[] encrypt = receiverCipherBox.encrypt(plainText);
         return encrypt;
     }
 
     @Override
     public byte[] decryptUponReceive(byte[] cipherText) {
-        byte[] plainText = senderCryptoBox.decrypt(cipherText);
+        byte[] plainText = senderCipherBox.decrypt(cipherText);
         return plainText;
     }
 }
