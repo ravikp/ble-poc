@@ -1,10 +1,10 @@
 package io.mosip.greetings.cryptography;
 
-public class CipherBoxPackage {
+public class CipherPackage {
     private CipherBox self;
     private CipherBox other;
 
-    public CipherBoxPackage(CipherBox self, CipherBox other) {
+    public CipherPackage(CipherBox self, CipherBox other) {
         this.self = self;
         this.other = other;
     }

@@ -13,10 +13,10 @@ class SenderTransfersOwnershipOfData implements SecretsTranslator {
     private CipherBox senderCipherBox;
     private CipherBox receiverCipherBox;
 
-    public SenderTransfersOwnershipOfData(byte[] initVector, CipherBoxPackage cipherBoxPackage) {
+    public SenderTransfersOwnershipOfData(byte[] initVector, CipherPackage cipherPackage) {
         this.initVector = initVector;
-        this.senderCipherBox = cipherBoxPackage.getSelf();
-        this.receiverCipherBox = cipherBoxPackage.getOther();
+        this.senderCipherBox = cipherPackage.getSelf();
+        this.receiverCipherBox = cipherPackage.getOther();
     }
 
     @Override

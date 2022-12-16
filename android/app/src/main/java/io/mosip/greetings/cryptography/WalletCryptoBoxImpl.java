@@ -21,7 +21,7 @@ class WalletCryptoBoxImpl implements WalletCryptoBox {
         byte[] ivBytes = new byte[CryptoBox.INITIALISATION_VECTOR_LENGTH];
         secureRandom.nextBytes(ivBytes);
 
-        CipherBoxPackage cipherBoxPackage = selfCryptoBox.createCipherBoxes(verifierPublicKey, KeyGenerator.WALLET_INFO, KeyGenerator.VERIFIER_INFO, ivBytes);
-        return new SenderTransfersOwnershipOfData(ivBytes, cipherBoxPackage);
+        CipherPackage cipherPackage = selfCryptoBox.createCipherPackage(verifierPublicKey, KeyGenerator.WALLET_INFO, KeyGenerator.VERIFIER_INFO, ivBytes);
+        return new SenderTransfersOwnershipOfData(ivBytes, cipherPackage);
     }
 }

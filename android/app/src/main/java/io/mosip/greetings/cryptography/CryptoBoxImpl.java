@@ -31,7 +31,7 @@ class CryptoBoxImpl implements CryptoBox {
     }
 
     @Override
-    public CipherBoxPackage createCipherBoxes(byte[] otherPublicKey, String senderInfo, String receiverInfo, byte[] ivBytes) {
+    public CipherPackage createCipherPackage(byte[] otherPublicKey, String senderInfo, String receiverInfo, byte[] ivBytes) {
         //Generate a weak shared secret key
         byte[] weakKey = generateWeakKeyBasedOnX25519(otherPublicKey);
 
@@ -42,7 +42,7 @@ class CryptoBoxImpl implements CryptoBox {
         CipherBox self = new CipherBoxImpl(senderKey, ivBytes, NUMBER_OF_MAC_BYTES);
         CipherBox other = new CipherBoxImpl(receiverKey, ivBytes, NUMBER_OF_MAC_BYTES);
 
-        return new CipherBoxPackage(self, other);
+        return new CipherPackage(self, other);
     }
 
     private byte[] generateWeakKeyBasedOnX25519(byte[] otherPublicKey) {
