@@ -20,8 +20,8 @@ class CentralController: NSObject, ObservableObject {
     @Published var connectToPeripheralError: Error?
     @Published var publishedMessages: [Message] = []
     @Published var centralUser: User?
-    private var cipherBox: CipherBox?
-    private  var cryptoBox: CryptoBox?
+    private var cryptoBox: WalletCryptoBox?
+    private var secretsTranslator: SecretsTranslator?
     
     var data = Data()
     
@@ -49,11 +49,10 @@ class CentralController: NSObject, ObservableObject {
         
         if connectedPeripheral.canSendWriteWithoutResponse {
             let mtu = connectedPeripheral.maximumWriteValueLength(for: .withoutResponse)
-            let encryptedMessage = cipherBox!.encrypt(message: message)
-            let bytesToCopy: size_t = min(mtu, encryptedMessage.count)
-            
+            let encryptedMessage = secretsTranslator?.encryptToSend(data: message.data(using: .utf8)!)
+            let bytesToCopy: size_t = min(mtu, encryptedMessage!.count)
             os_log("Central: Writing %d bytes: %s with MTU: %d", bytesToCopy, String(describing: message), mtu)
-            connectedPeripheral.writeValue(encryptedMessage, for: transferCharacteristic, type: .withoutResponse)
+            connectedPeripheral.writeValue(encryptedMessage!, for: transferCharacteristic, type: .withoutResponse)
         }
     }
     
@@ -67,11 +66,11 @@ class CentralController: NSObject, ObservableObject {
         
         if connectedPeripheral.canSendWriteWithoutResponse {
             let mtu = connectedPeripheral.maximumWriteValueLength(for: .withoutResponse)
-            let publicKey = cryptoBox!.getPublicKey()
-            let publicKeyData = publicKey.rawRepresentation.self
-            let bytesToCopy: size_t = min(mtu, publicKeyData.count)
-            let messageData = publicKeyData
-            
+            let publicKey = cryptoBox?.getPublicKey()
+            let bytesToCopy: size_t = min(mtu, publicKey?.count ?? 0)
+            let initializationVector  = secretsTranslator?.initializationVector()
+            let messageData = initializationVector! + publicKey!
+
             os_log("Central: Writing %d bytes: %s with MTU: %d", bytesToCopy, String(describing: messageData), mtu)
             connectedPeripheral.writeValue(messageData, for: transferCharacteristic, type: .withoutResponse)
         }
@@ -116,11 +115,8 @@ extension CentralController: CBCentralManagerDelegate {
             let scanResponseData = dataDict?[CBUUID(string: "AB2A")]  as! Data
             let advertisementData = dataDict?[CBUUID(string: "AB29")]  as! Data
             let publicKeyData =  advertisementData + scanResponseData
-            
-            cryptoBox = CryptoBox()
-            cipherBox = cryptoBox!.createCipherBox(data: publicKeyData)
-            
-            
+            cryptoBox = WalletCryptoBoxBuilder().build()
+            secretsTranslator = (cryptoBox?.buildSecretsTranslator(verifierPublicKey: publicKeyData))!
         }
         os_log("%@", advertisementData)
     }
@@ -200,10 +196,9 @@ extension CentralController: CBPeripheralDelegate {
             return
             
         }
-        let characteristicDataArray = [UInt8](characteristicData)
-        let decryptedText = cipherBox?.decrypt(encryptedMessage: characteristicDataArray)
-        os_log("Central: Received %d bytes: %s", decryptedText!.count, decryptedText!)
-        publishedMessages.append(Message(content: decryptedText!, user: User(name: "peripheral", isCurrentUser: false)))
+    
+        let decryptedData = secretsTranslator?.decryptUponReceive(data: characteristicData)
+        publishedMessages.append(Message(content: String(decoding: decryptedData!, as: UTF8.self), user: User(name: "peripheral", isCurrentUser: false)))
         }
     }
     

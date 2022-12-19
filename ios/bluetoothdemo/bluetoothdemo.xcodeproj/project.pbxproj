@@ -27,10 +27,20 @@
 		0ABAFBDB292734BE00D9AB40 /* MessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ABAFBDA292734BE00D9AB40 /* MessageView.swift */; };
 		0ABAFBDD2927357A00D9AB40 /* ChatController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ABAFBDC2927357A00D9AB40 /* ChatController.swift */; };
 		0AFA63FB29249E5200BCA6D4 /* CentralView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AFA63FA29249E5200BCA6D4 /* CentralView.swift */; };
-		3BCC81A729349080003A2B7D /* librustylib_binding.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BCC81A629348F6D003A2B7D /* librustylib_binding.a */; };
+		3BCC81A729349080003A2B7D /* librustylib_binding.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3BCC81A629348F6D003A2B7D /* librustylib_binding.a */; settings = {ATTRIBUTES = (Weak, ); }; };
 		3BCC81AD29349E7D003A2B7D /* identity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BCC81AC29349E7D003A2B7D /* identity.swift */; };
-		6BCCE2A42940F08300F4B71A /* CipherBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BCCE2A32940F08300F4B71A /* CipherBox.swift */; };
-		6BCCE2A62940F23E00F4B71A /* CryptoBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BCCE2A52940F23E00F4B71A /* CryptoBox.swift */; };
+		6BCCE2A42940F08300F4B71A /* CipherBoxImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BCCE2A32940F08300F4B71A /* CipherBoxImpl.swift */; };
+		6BCCE2A62940F23E00F4B71A /* CryptoBoxImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BCCE2A52940F23E00F4B71A /* CryptoBoxImpl.swift */; };
+		E211A655294C84110086B0A5 /* CipherBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = E211A654294C84110086B0A5 /* CipherBox.swift */; };
+		E211A657294C86930086B0A5 /* CipherPackage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E211A656294C86930086B0A5 /* CipherPackage.swift */; };
+		E211A65B294C8B220086B0A5 /* CryptoBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = E211A65A294C8B220086B0A5 /* CryptoBox.swift */; };
+		E211A65D294C91650086B0A5 /* KeyGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E211A65C294C91650086B0A5 /* KeyGenerator.swift */; };
+		E211A660294C95D10086B0A5 /* SecretTranslator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E211A65F294C95D10086B0A5 /* SecretTranslator.swift */; };
+		E211A662294C967F0086B0A5 /* SenderTransfersOwnershipOfData.swift in Sources */ = {isa = PBXBuildFile; fileRef = E211A661294C967F0086B0A5 /* SenderTransfersOwnershipOfData.swift */; };
+		E2DD585329503420009A3769 /* WalletCryptoBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2DD585229503420009A3769 /* WalletCryptoBox.swift */; };
+		E2DD5855295034A7009A3769 /* WalletCryptoBoxBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2DD5854295034A7009A3769 /* WalletCryptoBoxBuilder.swift */; };
+		E2DD585729503520009A3769 /* WalletCryptoBoxImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2DD585629503520009A3769 /* WalletCryptoBoxImpl.swift */; };
+		E2DD5859295037E1009A3769 /* CryptoConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2DD5858295037E1009A3769 /* CryptoConstants.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -78,8 +88,18 @@
 		0AFA63FA29249E5200BCA6D4 /* CentralView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CentralView.swift; sourceTree = "<group>"; };
 		3BCC81A629348F6D003A2B7D /* librustylib_binding.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = librustylib_binding.a; path = ../libs/librustylib_binding.a; sourceTree = "<group>"; };
 		3BCC81AC29349E7D003A2B7D /* identity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = identity.swift; path = ../generated/identity.swift; sourceTree = "<group>"; };
-		6BCCE2A32940F08300F4B71A /* CipherBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CipherBox.swift; sourceTree = "<group>"; };
-		6BCCE2A52940F23E00F4B71A /* CryptoBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoBox.swift; sourceTree = "<group>"; };
+		6BCCE2A32940F08300F4B71A /* CipherBoxImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CipherBoxImpl.swift; sourceTree = "<group>"; };
+		6BCCE2A52940F23E00F4B71A /* CryptoBoxImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoBoxImpl.swift; sourceTree = "<group>"; };
+		E211A654294C84110086B0A5 /* CipherBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CipherBox.swift; sourceTree = "<group>"; };
+		E211A656294C86930086B0A5 /* CipherPackage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CipherPackage.swift; sourceTree = "<group>"; };
+		E211A65A294C8B220086B0A5 /* CryptoBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoBox.swift; sourceTree = "<group>"; };
+		E211A65C294C91650086B0A5 /* KeyGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyGenerator.swift; sourceTree = "<group>"; };
+		E211A65F294C95D10086B0A5 /* SecretTranslator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretTranslator.swift; sourceTree = "<group>"; };
+		E211A661294C967F0086B0A5 /* SenderTransfersOwnershipOfData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SenderTransfersOwnershipOfData.swift; sourceTree = "<group>"; };
+		E2DD585229503420009A3769 /* WalletCryptoBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletCryptoBox.swift; sourceTree = "<group>"; };
+		E2DD5854295034A7009A3769 /* WalletCryptoBoxBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletCryptoBoxBuilder.swift; sourceTree = "<group>"; };
+		E2DD585629503520009A3769 /* WalletCryptoBoxImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletCryptoBoxImpl.swift; sourceTree = "<group>"; };
+		E2DD5858295037E1009A3769 /* CryptoConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoConstants.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -133,6 +153,7 @@
 		0AAB33BF2922086900FBC211 /* bluetoothdemo */ = {
 			isa = PBXGroup;
 			children = (
+				E211A64F294C76570086B0A5 /* cryptography */,
 				0ABAFB892924B81300D9AB40 /* Info.plist */,
 				0AAB33C02922086A00FBC211 /* bluetoothdemoApp.swift */,
 				0AAB33C22922086A00FBC211 /* ContentView.swift */,
@@ -152,8 +173,6 @@
 				0AAB33C42922086D00FBC211 /* Assets.xcassets */,
 				0AAB33C62922086D00FBC211 /* bluetoothdemo.entitlements */,
 				0AAB33C72922086D00FBC211 /* Preview Content */,
-				6BCCE2A32940F08300F4B71A /* CipherBox.swift */,
-				6BCCE2A52940F23E00F4B71A /* CryptoBox.swift */,
 			);
 			path = bluetoothdemo;
 			sourceTree = "<group>";
@@ -189,6 +208,65 @@
 				3BCC81A629348F6D003A2B7D /* librustylib_binding.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		E211A64F294C76570086B0A5 /* cryptography */ = {
+			isa = PBXGroup;
+			children = (
+				E211A659294C8A9E0086B0A5 /* CryptoBox */,
+				E211A658294C88310086B0A5 /* CipherBox */,
+				E211A65E294C95BE0086B0A5 /* SecretTranslator */,
+				E2DD5851295033F7009A3769 /* Wallet */,
+				E2DD5850294EE453009A3769 /* Utils */,
+			);
+			path = cryptography;
+			sourceTree = "<group>";
+		};
+		E211A658294C88310086B0A5 /* CipherBox */ = {
+			isa = PBXGroup;
+			children = (
+				E211A654294C84110086B0A5 /* CipherBox.swift */,
+				6BCCE2A32940F08300F4B71A /* CipherBoxImpl.swift */,
+			);
+			path = CipherBox;
+			sourceTree = "<group>";
+		};
+		E211A659294C8A9E0086B0A5 /* CryptoBox */ = {
+			isa = PBXGroup;
+			children = (
+				6BCCE2A52940F23E00F4B71A /* CryptoBoxImpl.swift */,
+				E211A65A294C8B220086B0A5 /* CryptoBox.swift */,
+			);
+			path = CryptoBox;
+			sourceTree = "<group>";
+		};
+		E211A65E294C95BE0086B0A5 /* SecretTranslator */ = {
+			isa = PBXGroup;
+			children = (
+				E211A65F294C95D10086B0A5 /* SecretTranslator.swift */,
+				E211A661294C967F0086B0A5 /* SenderTransfersOwnershipOfData.swift */,
+			);
+			path = SecretTranslator;
+			sourceTree = "<group>";
+		};
+		E2DD5850294EE453009A3769 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				E211A656294C86930086B0A5 /* CipherPackage.swift */,
+				E211A65C294C91650086B0A5 /* KeyGenerator.swift */,
+				E2DD5858295037E1009A3769 /* CryptoConstants.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+		E2DD5851295033F7009A3769 /* Wallet */ = {
+			isa = PBXGroup;
+			children = (
+				E2DD585229503420009A3769 /* WalletCryptoBox.swift */,
+				E2DD5854295034A7009A3769 /* WalletCryptoBoxBuilder.swift */,
+				E2DD585629503520009A3769 /* WalletCryptoBoxImpl.swift */,
+			);
+			path = Wallet;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -326,11 +404,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6BCCE2A42940F08300F4B71A /* CipherBox.swift in Sources */,
+				6BCCE2A42940F08300F4B71A /* CipherBoxImpl.swift in Sources */,
 				3BCC81AD29349E7D003A2B7D /* identity.swift in Sources */,
 				0ABAFBD7292731E500D9AB40 /* ChatMessageView.swift in Sources */,
+				E2DD5855295034A7009A3769 /* WalletCryptoBoxBuilder.swift in Sources */,
 				0AFA63FB29249E5200BCA6D4 /* CentralView.swift in Sources */,
 				0A412DEE292B82C700D486A5 /* PeripheralView.swift in Sources */,
+				E211A65B294C8B220086B0A5 /* CryptoBox.swift in Sources */,
 				0AAB33C32922086A00FBC211 /* ContentView.swift in Sources */,
 				0A06DC332927619D00B77DD5 /* PeripheralController.swift in Sources */,
 				0ABAFB882924ADB300D9AB40 /* TransferServiceController.swift in Sources */,
@@ -338,12 +418,20 @@
 				0A412DEA292B22E400D486A5 /* Message.swift in Sources */,
 				0A412DF0292C7B5500D486A5 /* CentralChatView.swift in Sources */,
 				0ABAFBD92927346E00D9AB40 /* ChatView.swift in Sources */,
+				E211A655294C84110086B0A5 /* CipherBox.swift in Sources */,
+				E2DD585729503520009A3769 /* WalletCryptoBoxImpl.swift in Sources */,
+				E211A660294C95D10086B0A5 /* SecretTranslator.swift in Sources */,
+				E211A657294C86930086B0A5 /* CipherPackage.swift in Sources */,
 				0A412DEC292B230500D486A5 /* User.swift in Sources */,
+				E2DD585329503420009A3769 /* WalletCryptoBox.swift in Sources */,
 				0A412DF2292C7F4C00D486A5 /* PeripheralChatView.swift in Sources */,
-				6BCCE2A62940F23E00F4B71A /* CryptoBox.swift in Sources */,
+				6BCCE2A62940F23E00F4B71A /* CryptoBoxImpl.swift in Sources */,
 				0AAB33C12922086A00FBC211 /* bluetoothdemoApp.swift in Sources */,
 				0ABAFB862924A5DC00D9AB40 /* CentralController.swift in Sources */,
 				0ABAFBDD2927357A00D9AB40 /* ChatController.swift in Sources */,
+				E211A662294C967F0086B0A5 /* SenderTransfersOwnershipOfData.swift in Sources */,
+				E2DD5859295037E1009A3769 /* CryptoConstants.swift in Sources */,
+				E211A65D294C91650086B0A5 /* KeyGenerator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -500,7 +588,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"bluetoothdemo/Preview Content\"";
-				DEVELOPMENT_TEAM = 7RF9K8MUWT;
+				DEVELOPMENT_TEAM = Q2NB997JDV;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -523,7 +611,7 @@
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../libs";
 				MACOSX_DEPLOYMENT_TARGET = 12.6;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.harsh.bluetoothdemo;
+				PRODUCT_BUNDLE_IDENTIFIER = com.str.bluetoothdemoapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -545,7 +633,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"bluetoothdemo/Preview Content\"";
-				DEVELOPMENT_TEAM = 7RF9K8MUWT;
+				DEVELOPMENT_TEAM = Q2NB997JDV;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -568,7 +656,7 @@
 				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/../libs";
 				MACOSX_DEPLOYMENT_TARGET = 12.6;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.harsh.bluetoothdemo;
+				PRODUCT_BUNDLE_IDENTIFIER = com.str.bluetoothdemoapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
