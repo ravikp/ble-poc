@@ -31,7 +31,7 @@ class SenderTransfersOwnershipOfData: SecretsTranslator {
     }
 
     func decryptUponReceive(data: Data) -> Data {
-        let encrypt = (senderCipherBox.encrypt(message: data))
+        let encrypt = (senderCipherBox.decrypt(message: data))
         return encrypt
         
     }
