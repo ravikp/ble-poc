@@ -186,7 +186,7 @@ class Peripheral : ChatManager {
 //                    cipherBox = cryptoBox.createCipherBox(value)
                     val iv = value.copyOfRange(0, 12)
                     val walletPublicKey = value.copyOfRange(12, value.size)
-                    secretsTranslator = verifierCryptoBox.buildCommunicator(iv, walletPublicKey);
+                    secretsTranslator = verifierCryptoBox.buildSecretsTranslator(iv, walletPublicKey);
                 }
                 else {
 //                    val decryptedMsg = cipherBox.decrypt(value)
