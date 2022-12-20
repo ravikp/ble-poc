@@ -17,6 +17,8 @@ class SenderTransfersOwnershipOfData: SecretsTranslator {
         self.senderCipherBox = cipherPackage.getSelfCipherBox
         self.receiverCipherBox = cipherPackage.getOtherCipherBox
         self.initVector = initVector
+        self.senderCipherBox.printSecretKey(identifieris: "SENDER")
+        self.receiverCipherBox.printSecretKey(identifieris: "RECIVER")
     }
 
     func initializationVector() -> Data {

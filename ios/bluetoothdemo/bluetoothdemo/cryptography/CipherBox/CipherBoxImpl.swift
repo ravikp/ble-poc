@@ -13,9 +13,11 @@ class CipherBoxImpl: CipherBox {
         self.initializationVector = initializationVector
         self.digestSizeInBytes = digestSizeInBytes
     }
-    func printSecretKey(){
-        
+
+    func printSecretKey(identifieris: String){
+        print("my secretkey is for", identifieris, "is", secretKey.toData().toHex())
     }
+
     func encrypt(message: Data) -> Data {
         let encryptedSealedBox = try! AES.GCM.seal(message, using: secretKey,nonce: AES.GCM.Nonce(data: initializationVector))
         let cipherWithAuthTag = encryptedSealedBox.ciphertext + encryptedSealedBox.tag
