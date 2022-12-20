@@ -36,6 +36,8 @@ class Central : ChatManager {
     private var servicesDiscoveryRetryCounter = 3
 
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
+
+
         override fun onCharacteristicWrite(
             gatt: BluetoothGatt?,
             characteristic: BluetoothGattCharacteristic?,
@@ -53,7 +55,8 @@ class Central : ChatManager {
             characteristic: BluetoothGattCharacteristic,
         ) {
             super.onCharacteristicChanged(gatt, characteristic)
-            val decryptedMsg = cipherBox.decrypt(characteristic.value)
+            //val decryptedMsg = cipherBox.decrypt(characteristic.value)
+            val decryptedMsg = characteristic.value
             Log.i("BLE Central", "Characteristic changed to ${String(decryptedMsg)}")
 
             onMessageReceived(String( decryptedMsg))
@@ -81,7 +84,9 @@ class Central : ChatManager {
         override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
             super.onMtuChanged(gatt, mtu, status)
             onDeviceConnected()
+
             Log.i("BLE Central", "Successfully changed mtu size: $mtu")
+            Log.i("BLE Central", "Successfully changed mtu status: $status")
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
@@ -102,7 +107,7 @@ class Central : ChatManager {
 
             if(hasPeripheralService == true) {
                 Log.i("BLE Central", "Device is connected")
-                val success = gatt.requestMtu(517)
+                val success = gatt.requestMtu(200)
                 Log.i("BLE Central", "Word size: $success")
                 servicesDiscoveryRetryCounter = 3
             } else if(servicesDiscoveryRetryCounter > 0) {
@@ -214,7 +219,8 @@ class Central : ChatManager {
 
         val service = bluetoothGatt.getService(Peripheral.serviceUUID)
         val writeChar = service.getCharacteristic(Peripheral.WRITE_MESSAGE_CHAR_UUID)
-        val encryptedMsg = cipherBox.encrypt(message.toByteArray(Charset.defaultCharset()))
+        //val encryptedMsg = cipherBox.encrypt(message.toByteArray(Charset.defaultCharset()))
+        val encryptedMsg = message.toByteArray(Charset.defaultCharset())
         writeChar.value = encryptedMsg
         writeChar.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
         val status = bluetoothGatt.writeCharacteristic(writeChar)

@@ -34,9 +34,10 @@ class Peripheral : ChatManager {
         private lateinit var instance: Peripheral
         val serviceUUID: UUID = UUIDHelper.uuidFromString("AB29")
         val scanResponseUUID: UUID = UUIDHelper.uuidFromString("AB2A")
-        val WRITE_MESSAGE_CHAR_UUID = UUIDHelper.uuidFromString("2031")
+        val WRITE_MESSAGE_CHAR_UUID = UUIDHelper.uuidFromString("00002031-5026-444A-9E0E-D6F2450F3A77")
         val IDENTIFY_REQ_CHAR_UUID = UUIDHelper.uuidFromString("2033")
-        val READ_MESSAGE_CHAR_UUID = UUIDHelper.uuidFromString("2032")
+        val READ_MESSAGE_CHAR_UUID = UUIDHelper.uuidFromString("00002032-5026-444A-9E0E-D6F2450F3A77")
+
 
         fun getInstance(): Peripheral {
             synchronized(this) {
@@ -100,7 +101,7 @@ class Peripheral : ChatManager {
     private fun advertiseSettings(): AdvertiseSettings? {
         return AdvertiseSettings.Builder()
             .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
-            .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_ULTRA_LOW)
+            .setTxPowerLevel( AdvertiseSettings.ADVERTISE_TX_POWER_ULTRA_LOW)
             .setConnectable(true)
             .build()
     }
@@ -142,6 +143,11 @@ class Peripheral : ChatManager {
     }
 
     private val gattServerCallback: BluetoothGattServerCallback = object : BluetoothGattServerCallback(){
+
+        override fun onMtuChanged(device: BluetoothDevice?, mtu: Int) {
+            super.onMtuChanged(device, mtu)
+            Log.i("BLE Peripheral", "New MTU size: $mtu. The device is $device")
+        }
 
         override fun onDescriptorWriteRequest(
             device: BluetoothDevice?,
@@ -186,12 +192,17 @@ class Peripheral : ChatManager {
         ) {
             super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value)
             if (value != null) {
+                Log.i("BLE Central", "Characteristics: $characteristic")
+                Log.i("BLE Central", "request id: $requestId")
+                Log.i("BLE Central", "preparedWrite: $preparedWrite")
+                Log.i("BLE Central", "responseNeeded: $responseNeeded")
                 if (characteristic.uuid == IDENTIFY_REQ_CHAR_UUID) {
                     Log.d("BLE Peripheral", "Public Key from Central. Characteristic=" + characteristic.uuid + " value=" + value.toUByteArray())
                     cipherBox = cryptoBox.createCipherBox(value)
                 }
                 else {
-                    val decryptedMsg = cipherBox.decrypt(value)
+                   // val decryptedMsg = cipherBox.decrypt(value)
+                    val decryptedMsg = value
                     Log.d("BLE Peripheral","Msg from Central. Characteristic=" + characteristic.uuid + " Message = " + String(decryptedMsg)
                     )
                     onMessageReceived(String(decryptedMsg))
@@ -262,7 +273,8 @@ class Peripheral : ChatManager {
             .getService(serviceUUID)
             .getCharacteristic(READ_MESSAGE_CHAR_UUID)
 
-        val encryptedMsg = cipherBox.encrypt(message.toByteArray(Charset.defaultCharset()))
+        //val encryptedMsg = cipherBox.encrypt(message.toByteArray(Charset.defaultCharset()))
+        val encryptedMsg =message.toByteArray(Charset.defaultCharset())
         output.setValue(encryptedMsg)
 
         if(centralDevice != null) {
