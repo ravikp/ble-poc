@@ -1,5 +1,7 @@
 package io.mosip.greetings.cryptography;
 
+import android.util.Log;
+
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPairGenerator;
 import org.bouncycastle.crypto.agreement.X25519Agreement;
@@ -7,6 +9,7 @@ import org.bouncycastle.crypto.generators.X25519KeyPairGenerator;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.crypto.params.X25519KeyGenerationParameters;
 import org.bouncycastle.crypto.params.X25519PublicKeyParameters;
+import org.bouncycastle.util.encoders.Hex;
 
 import java.security.SecureRandom;
 
@@ -34,10 +37,14 @@ class CryptoBoxImpl implements CryptoBox {
     public CipherPackage createCipherPackage(byte[] otherPublicKey, String senderInfo, String receiverInfo, byte[] ivBytes) {
         //Generate a weak shared secret key
         byte[] weakKey = generateWeakKeyBasedOnX25519(otherPublicKey);
+        Log.d("CipherPackage", "weak key: " + Hex.toHexString(weakKey));
 
         //Generate two strong shared keys from a weak shared secret key using HKDF algorithm
         byte[] senderKey = KeyGenerator.generateKey(weakKey, SECRET_LENGTH, senderInfo);
+        Log.d("CipherPackage", "sender key: " + Hex.toHexString(senderKey));
+
         byte[] receiverKey = KeyGenerator.generateKey(weakKey, SECRET_LENGTH, receiverInfo);
+        Log.d("CipherPackage", "receiver key: " + Hex.toHexString(receiverKey));
 
         CipherBox self = new CipherBoxImpl(senderKey, ivBytes, NUMBER_OF_MAC_BYTES);
         CipherBox other = new CipherBoxImpl(receiverKey, ivBytes, NUMBER_OF_MAC_BYTES);

@@ -1,5 +1,9 @@
 package io.mosip.greetings.cryptography;
 
+import android.util.Log;
+
+import org.bouncycastle.util.encoders.Hex;
+
 import java.security.SecureRandom;
 
 class VerifierCryptoBoxImpl implements VerifierCryptoBox {
@@ -11,6 +15,7 @@ class VerifierCryptoBoxImpl implements VerifierCryptoBox {
 
     @Override
     public byte[] publicKey() {
+        Log.d("CryptoBox", "Verifier publickey: " + Hex.toHexString(selfCryptoBox.getPublicKey()));
         return selfCryptoBox.getPublicKey();
     }
 

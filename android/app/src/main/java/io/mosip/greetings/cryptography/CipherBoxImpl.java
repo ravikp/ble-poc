@@ -23,7 +23,7 @@ class CipherBoxImpl implements CipherBox {
 
     @Override
     public void printSecretKey(String identifier) {
-        Log.d("CipherBoxImpl", "secret key of " + identifier + ":" + new String(Hex.encode(this.secretKey.getKey())));
+        Log.d("CipherBoxImpl", "secret key of " + identifier + ":" + Hex.toHexString(this.secretKey.getKey()));
     }
 
     @Override

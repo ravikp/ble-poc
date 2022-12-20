@@ -1,5 +1,9 @@
 package io.mosip.greetings.cryptography;
 
+import android.util.Log;
+
+import org.bouncycastle.util.encoders.Hex;
+
 import java.security.SecureRandom;
 
 class WalletCryptoBoxImpl implements WalletCryptoBox {
@@ -13,6 +17,7 @@ class WalletCryptoBoxImpl implements WalletCryptoBox {
 
     @Override
     public byte[] publicKey() {
+        Log.d("CryptoBox", "Wallet publickey: " + Hex.toHexString(selfCryptoBox.getPublicKey()));
         return selfCryptoBox.getPublicKey();
     }
 
