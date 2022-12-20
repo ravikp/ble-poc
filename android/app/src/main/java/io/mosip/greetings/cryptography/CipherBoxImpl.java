@@ -1,11 +1,14 @@
 package io.mosip.greetings.cryptography;
 
+import android.util.Log;
+
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.AESEngine;
 import org.bouncycastle.crypto.modes.GCMBlockCipher;
 import org.bouncycastle.crypto.params.AEADParameters;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.util.Arrays;
+import org.bouncycastle.util.encoders.Hex;
 
 class CipherBoxImpl implements CipherBox {
     private final byte[] initializationVector;
@@ -19,8 +22,12 @@ class CipherBoxImpl implements CipherBox {
     }
 
     @Override
-    public byte[] encrypt(byte[] plainText) {
+    public void printSecretKey(String identifier) {
+        Log.d("CipherBoxImpl", "secret key of " + identifier + ":" + Hex.encode(this.secretKey.getKey()));
+    }
 
+    @Override
+    public byte[] encrypt(byte[] plainText) {
         return process(plainText, true, macSizeInBits);
     }
 

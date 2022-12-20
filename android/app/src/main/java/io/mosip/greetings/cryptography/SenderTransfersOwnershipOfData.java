@@ -17,6 +17,9 @@ class SenderTransfersOwnershipOfData implements SecretsTranslator {
         this.initVector = initVector;
         this.senderCipherBox = cipherPackage.getSelf();
         this.receiverCipherBox = cipherPackage.getOther();
+
+        this.senderCipherBox.printSecretKey("sender");
+        this.receiverCipherBox.printSecretKey("receiver");
     }
 
     @Override
