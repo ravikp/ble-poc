@@ -12,6 +12,8 @@ import io.mosip.greetings.chat.ChatManager
 import io.mosip.greetings.cryptography.CipherBox
 import io.mosip.greetings.cryptography.CryptoBox
 import io.mosip.greetings.cryptography.CryptoBoxBuilder
+import io.mosip.greetings.transfer.Assembler
+import io.mosip.greetings.transfer.Message
 import java.nio.charset.Charset
 import java.security.SecureRandom
 import java.util.*
@@ -28,6 +30,7 @@ class Peripheral : ChatManager {
     private lateinit var onMessageReceived: (String) -> Unit
     private var centralDevice: BluetoothDevice? = null
     var advertising: Boolean = false
+    val assembler: Assembler = Assembler()
 
     companion object {
         @Volatile
@@ -36,8 +39,7 @@ class Peripheral : ChatManager {
         val scanResponseUUID: UUID = UUIDHelper.uuidFromString("AB2A")
         val WRITE_MESSAGE_CHAR_UUID = UUIDHelper.uuidFromString("00002031-5026-444A-9E0E-D6F2450F3A77")
         val IDENTIFY_REQ_CHAR_UUID = UUIDHelper.uuidFromString("2033")
-        val READ_MESSAGE_CHAR_UUID = UUIDHelper.uuidFromString("00002032-5026-444A-9E0E-D6F2450F3A77")
-
+        val READ_MESSAGE_CHAR_UUID = UUIDHelper.uuidFromString("2032")
 
         fun getInstance(): Peripheral {
             synchronized(this) {
@@ -48,8 +50,6 @@ class Peripheral : ChatManager {
             }
         }
     }
-
-
 
     fun start(context: Context, onConnect: () -> Unit, updateLoadingText: (String) -> Unit) {
         val bluetoothManager:BluetoothManager =
@@ -192,25 +192,27 @@ class Peripheral : ChatManager {
         ) {
             super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value)
             if (value != null) {
-                Log.i("BLE Central", "Characteristics: $characteristic")
-                Log.i("BLE Central", "request id: $requestId")
-                Log.i("BLE Central", "preparedWrite: $preparedWrite")
-                Log.i("BLE Central", "responseNeeded: $responseNeeded")
                 if (characteristic.uuid == IDENTIFY_REQ_CHAR_UUID) {
                     Log.d("BLE Peripheral", "Public Key from Central. Characteristic=" + characteristic.uuid + " value=" + value.toUByteArray())
                     cipherBox = cryptoBox.createCipherBox(value)
                 }
                 else {
-                   // val decryptedMsg = cipherBox.decrypt(value)
-                    val decryptedMsg = value
-                    Log.d("BLE Peripheral","Msg from Central. Characteristic=" + characteristic.uuid + " Message = " + String(decryptedMsg)
-                    )
-                    onMessageReceived(String(decryptedMsg))
+                    assembler.push(value)
+                    if(assembler.isComplete) {
+                        val completeMessage = assembler.assemble()
+                        Log.d("BLE Peripheral", "Are messages same:  ${completeMessage.equals(Message().message)}")
+                        sendMessage("Received all chunks")
+                        onMessageReceived(completeMessage)
+                    }else {
+                        Log.d("BLE Peripheral", "Msg from Central. Characteristic=" + characteristic.uuid)
+                        sendMessage(assembler.chunkIndex.toString())
+                    }
                 }
             }
 
-            if (responseNeeded) {
-                gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
+           if (responseNeeded) {
+                val response = gattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
+                Log.i("BLE Peripheral", "Send Response : $response")
             }
         }
 
@@ -269,17 +271,14 @@ class Peripheral : ChatManager {
     }
 
     override fun sendMessage(message: String): String? {
-        val output = gattServer
-            .getService(serviceUUID)
-            .getCharacteristic(READ_MESSAGE_CHAR_UUID)
+        val output = gattServer.getService(serviceUUID).getCharacteristic(READ_MESSAGE_CHAR_UUID)
 
-        //val encryptedMsg = cipherBox.encrypt(message.toByteArray(Charset.defaultCharset()))
-        val encryptedMsg =message.toByteArray(Charset.defaultCharset())
-        output.setValue(encryptedMsg)
+        val dataToSend = if(message == "Start") "1" else message
+        output.setValue(dataToSend)
 
         if(centralDevice != null) {
-            Log.i("BLE Peripheral", "Sent notification to device $centralDevice from ${output.uuid}")
-            gattServer.notifyCharacteristicChanged(centralDevice!!, output, false)
+            Log.i("BLE Peripheral", "Sent notification to device $centralDevice from ${output.uuid}. Value = ${dataToSend}")
+            gattServer.notifyCharacteristicChanged(centralDevice!!, output, true)
             return null
         } else {
             return "Central is not connected."

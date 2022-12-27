@@ -12,15 +12,17 @@ import io.mosip.greetings.chat.ChatManager
 import io.mosip.greetings.cryptography.CipherBox
 import io.mosip.greetings.cryptography.CryptoBox
 import io.mosip.greetings.cryptography.CryptoBoxBuilder
-import uniffi.identity.decrypt
-import uniffi.identity.encrypt
+import io.mosip.greetings.transfer.Chunker
+import io.mosip.greetings.transfer.Message
 import java.nio.charset.Charset
 import java.security.SecureRandom
+import java.util.*
 
 
 // Sequence of actions
 // Scanning -> Connecting -> Discover Services -> Subscribes to Read Characteristic
 class Central : ChatManager {
+    private var startTime: Long = -1
     private lateinit var cipherBox: CipherBox
     private lateinit var cryptoBox: CryptoBox
     private lateinit var updateLoadingText: (String) -> Unit
@@ -35,8 +37,14 @@ class Central : ChatManager {
     private lateinit var bluetoothGatt: BluetoothGatt
     private var servicesDiscoveryRetryCounter = 3
 
-    private val bluetoothGattCallback = object : BluetoothGattCallback() {
 
+    var dataToSend = Message().message
+    var chunker = Chunker(dataToSend.toByteArray(Charset.defaultCharset()).toUByteArray())
+    var nextChunkToSend: Int = -1
+
+
+    @OptIn(ExperimentalUnsignedTypes::class)
+    private val bluetoothGattCallback = object : BluetoothGattCallback() {
 
         override fun onCharacteristicWrite(
             gatt: BluetoothGatt?,
@@ -45,8 +53,11 @@ class Central : ChatManager {
         ) {
             Log.i("BLE Central", "Status of write is $status for ${characteristic?.uuid}")
 
-            if(status != BluetoothGatt.GATT_SUCCESS) {
-                Log.i("BLE", "\"Failed to send message to peripheral")
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                Log.i("BLE Central", "Failed to send message to peripheral")
+            }
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.i("BLE Central", "Successfully sent message to peripheral.")
             }
         }
 
@@ -55,11 +66,17 @@ class Central : ChatManager {
             characteristic: BluetoothGattCharacteristic,
         ) {
             super.onCharacteristicChanged(gatt, characteristic)
-            //val decryptedMsg = cipherBox.decrypt(characteristic.value)
-            val decryptedMsg = characteristic.value
-            Log.i("BLE Central", "Characteristic changed to ${String(decryptedMsg)}")
 
-            onMessageReceived(String( decryptedMsg))
+            if(String(characteristic.value) =="Received all chunks")
+                Log.i("BLE Central", "Total time taken: ${System.currentTimeMillis() - startTime}")
+            else {
+                nextChunkToSend = String(characteristic.value).toInt()
+                Log.i("BLE Central", "Characteristic changed to $nextChunkToSend")
+                if (nextChunkToSend == 1)
+                    startTime = System.currentTimeMillis()
+                if (!chunker.isComplete(nextChunkToSend))
+                    sendMessage1(chunker.getChunkOf(nextChunkToSend))
+            }
         }
 
         override fun onDescriptorWrite(
@@ -99,18 +116,18 @@ class Central : ChatManager {
             Log.i("BLE Central", "discovered services: ${gatt?.services?.map { it.uuid }}")
             updateLoadingText("Discovered Services.")
 
-            if (gatt != null) {
+            if (gatt != null)
                 bluetoothGatt = gatt
-            }
+
 
             val hasPeripheralService = gatt?.services?.map { it.uuid }?.contains(Peripheral.serviceUUID)
 
-            if(hasPeripheralService == true) {
+            if (hasPeripheralService == true) {
                 Log.i("BLE Central", "Device is connected")
-                val success = gatt.requestMtu(200)
+                val success = gatt.requestMtu(500)
                 Log.i("BLE Central", "Word size: $success")
                 servicesDiscoveryRetryCounter = 3
-            } else if(servicesDiscoveryRetryCounter > 0) {
+            } else if (servicesDiscoveryRetryCounter > 0) {
                 Log.i("BLE", "Retrying discover services times: $servicesDiscoveryRetryCounter")
                 updateLoadingText("Retrying discover Services: $servicesDiscoveryRetryCounter")
                 servicesDiscoveryRetryCounter--
@@ -143,22 +160,24 @@ class Central : ChatManager {
 
     private val leScanCallback: ScanCallback = object : ScanCallback() {
 
-        // Scenario 1: Android 11 and Android 11
-                // serviceData -> {uuid -> adv data + scan resp} | TODO: Why is the serviceData is coming different?
-                // bytes -> adv data + scan resp + meta
-        // Scenario 2: Android 11 (Peripheral) -> Android 12 (Central)
-                // serviceData -> {uuid -> scan resp}
-                // bytes -> adv data + scan resp + meta
-        // Scenario 3: Android 12 (Peripheral) -> Android 9 (Central)
-                // serviceData -> {uuid -> scan resp}
-                // bytes -> adv data + scan resp + meta
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            val advertisementPayload = result.scanRecord?.getServiceData(ParcelUuid(Peripheral.serviceUUID))
-            val scanResponsePayload = result.scanRecord?.getServiceData(ParcelUuid(Peripheral.scanResponseUUID))
+            val advertisementPayload =
+                result.scanRecord?.getServiceData(ParcelUuid(Peripheral.serviceUUID))
+            val scanResponsePayload =
+                result.scanRecord?.getServiceData(ParcelUuid(Peripheral.scanResponseUUID))
 
-            Log.i("BLE Central", "Found the device: $result. The bytes are: ${result.scanRecord?.bytes?.toUByteArray()}")
-            Log.i("BLE Central", "PART: ADV_DATA: $result. The bytes are: ${advertisementPayload!!.toUByteArray()}")
-            Log.i("BLE Central", "PART: SCN_DATA: $result. The bytes are: ${scanResponsePayload!!.toUByteArray()}")
+            Log.i(
+                "BLE Central",
+                "Found the device: $result. The bytes are: ${result.scanRecord?.bytes?.toUByteArray()}"
+            )
+            Log.i(
+                "BLE Central",
+                "PART: ADV_DATA: $result. The bytes are: ${advertisementPayload!!.toUByteArray()}"
+            )
+            Log.i(
+                "BLE Central",
+                "PART: SCN_DATA: $result. The bytes are: ${scanResponsePayload!!.toUByteArray()}"
+            )
             val publicKey = advertisementPayload!! + scanResponsePayload!!
             cryptoBox = CryptoBoxBuilder().setSecureRandomSeed(SecureRandom()).build()
             cipherBox = cryptoBox.createCipherBox(publicKey)
@@ -203,25 +222,45 @@ class Central : ChatManager {
         val service = bluetoothGatt.getService(Peripheral.serviceUUID)
         val readChar = service.getCharacteristic(Peripheral.READ_MESSAGE_CHAR_UUID)
         bluetoothGatt.setCharacteristicNotification(readChar, true)
-
         val descriptor: BluetoothGattDescriptor =
-            readChar.getDescriptor(UUIDHelper.uuidFromString("00002902-0000-1000-8000-00805f9b34fb"))
+            readChar.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"))
         descriptor.value = BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
         val status = bluetoothGatt.writeDescriptor(descriptor)
         Log.i("BLE Central", "Raised subscription to peripheral: $status")
     }
 
     override fun sendMessage(message: String): String? {
+        /* if (!connected) {
+
+             Log.e("BLE Central", "Peripheral is not connected")
+             return "Peripheral is not connected"
+         }
+
+         val service = bluetoothGatt.getService(Peripheral.serviceUUID)
+         val writeChar = service.getCharacteristic(Peripheral.WRITE_MESSAGE_CHAR_UUID)
+         val encryptedMsg = message.toByteArray(Charset.defaultCharset())
+         writeChar.value = encryptedMsg
+         writeChar.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+         val status = bluetoothGatt.writeCharacteristic(writeChar)
+         Log.i("BLE Central", "Sent message to peripheral: $status")
+ */
+        dataToSend = Message().message
+        chunker = Chunker(dataToSend.toByteArray(Charset.defaultCharset()).toUByteArray())
+        startTime = System.currentTimeMillis()
+        if (nextChunkToSend == 0 && nextChunkToSend == chunker.getChunkReadCounter())
+            sendMessage1(chunker.next())
+        return null
+
+    }
+
+    fun sendMessage1(message: UByteArray): String? {
         if (!connected) {
             Log.e("BLE Central", "Peripheral is not connected")
             return "Peripheral is not connected"
         }
-
         val service = bluetoothGatt.getService(Peripheral.serviceUUID)
         val writeChar = service.getCharacteristic(Peripheral.WRITE_MESSAGE_CHAR_UUID)
-        //val encryptedMsg = cipherBox.encrypt(message.toByteArray(Charset.defaultCharset()))
-        val encryptedMsg = message.toByteArray(Charset.defaultCharset())
-        writeChar.value = encryptedMsg
+        writeChar.value = message.toByteArray()
         writeChar.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
         val status = bluetoothGatt.writeCharacteristic(writeChar)
         Log.i("BLE Central", "Sent message to peripheral: $status")
