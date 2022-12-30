@@ -1,5 +1,6 @@
 package io.mosip.greetings
 
+import android.bluetooth.BluetoothDevice
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -10,12 +11,11 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat.OnRequestPermissionsResultCallback
-import io.mosip.greetings.ble.Central
-import io.mosip.greetings.ble.Common
-import io.mosip.greetings.ble.Peripheral
+import io.mosip.greetings.ble.*
 import io.mosip.greetings.chat.ChatActivity
 import io.mosip.greetings.chat.ChatController
 
+var devicesName: HashMap<BluetoothDevice,String> = HashMap<BluetoothDevice,String>()
 
 class MainActivity : AppCompatActivity(), OnRequestPermissionsResultCallback {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,15 +43,15 @@ class MainActivity : AppCompatActivity(), OnRequestPermissionsResultCallback {
         val peripheral = Peripheral.getInstance()
         peripheral.start(this,
             onConnect = { moveToChatActivity(ChatController.PERIPHERAL_MODE) },
-            updateLoadingText =  {
-            runOnUiThread {
-                updateLoadingText(it)
-            }
-        })
+            updateLoadingText = {
+                runOnUiThread {
+                    updateLoadingText(it)
+                }
+            })
 
         showLoadingLayout()
         updateLoadingText(getString(R.string.broadcastingMessage))
-        setCancelLoadingButton  {
+        setCancelLoadingButton {
             this.stopBroadCasting(peripheral)
         }
 
@@ -66,6 +66,8 @@ class MainActivity : AppCompatActivity(), OnRequestPermissionsResultCallback {
     }
 
     private fun startScanningForPeripheral() {
+
+
         showLoadingLayout()
         updateLoadingText(getString(R.string.ScanningMessage))
         setCancelLoadingButton {
@@ -73,24 +75,33 @@ class MainActivity : AppCompatActivity(), OnRequestPermissionsResultCallback {
         }
 
         val central = Central.getInstance()
+
         val onDeviceFound = {
-            central.connect(this,
-                onDeviceConnected = { moveToChatActivity(ChatController.CENTRAL_MODE)},
-                onConnectionFailure = this::failureDialog)
+            moveToListDevicesActivity(central.peripheralDevices)
         }
+        val onDeviceSelected = {
+            central.connect(
+                this,
+                onDeviceConnected = { moveToChatActivity(ChatController.CENTRAL_MODE) },
+                onConnectionFailure = this::failureDialog
+            )
+        }
+
         central.startScanning(this,
-            onDeviceFound = onDeviceFound ,
+            onDeviceFound = onDeviceFound,
+            onDeviceSelected = onDeviceSelected,
             updateLoadingText = { runOnUiThread { updateLoadingText(it) } }
         )
 
-        Log.i("BLE","Starting Scan")
+
+        Log.i("BLE", "Starting Scan")
     }
 
     private fun stopScanningForPeripheral() {
         showActionsLayout()
 
         Central.getInstance().stopScan()
-        Log.i("BLE","Stopping Scan")
+        Log.i("BLE", "Stopping Scan")
     }
 
     private fun setCancelLoadingButton(onClick: (View) -> Unit) {
@@ -155,6 +166,21 @@ class MainActivity : AppCompatActivity(), OnRequestPermissionsResultCallback {
     private fun moveToChatActivity(mode: Int) {
         val intent = Intent(this@MainActivity, ChatActivity::class.java)
         intent.putExtra("mode", mode)
+        startActivity(intent)
+    }
+
+    private fun moveToListDevicesActivity(peripheralDevices: HashMap<BluetoothDevice, Device>) {
+        Log.i("###peripherals :", "$peripheralDevices")
+
+    Log.i("Main Activity", "This is $peripheralDevices")
+
+        var keyByValue = peripheralDevices.keys.elementAt(0)
+        var valueByKey = peripheralDevices.getValue(keyByValue).first
+
+        devicesName[keyByValue] = valueByKey
+        Log.i("Main Activity","devices name map $devicesName")
+        val intent = Intent(this@MainActivity, ListDevicesActivity::class.java)
+        intent.putExtra("devices", devicesName)
         startActivity(intent)
     }
 
