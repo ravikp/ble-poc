@@ -61,11 +61,8 @@ class Peripheral : ChatManager {
         val settings = advertiseSettings()
 
         verifierCryptoBox = VerifierCryptoBoxBuilder.build(SecureRandom());
-        Log.i("BLE Peripheral", "Own Public Key: ${verifierCryptoBox.publicKey().toUByteArray()}")
-
-        val advertisementData = createAdvertiseData(service.uuid, "MOSIP2_".toByteArray() + verifierCryptoBox.publicKey().copyOfRange(0,13))
-        val scanResponse = createScanResponse(scanResponseUUID, verifierCryptoBox.publicKey().copyOfRange(13,32))
-
+        val advertisementData = createAdvertiseData(service.uuid, verifierCryptoBox.publicKey().copyOfRange(0, 16))
+        val scanResponse = createScanResponse(scanResponseUUID, verifierCryptoBox.publicKey().copyOfRange(16, 32))
 
         this.onConnect = onConnect
         this.updateLoadingText = updateLoadingText
@@ -79,7 +76,6 @@ class Peripheral : ChatManager {
     }
 
     private fun createAdvertiseData(packetId: UUID?, payload: ByteArray): AdvertiseData? {
-        Log.i("BLE Peripheral", "Payload: ${payload.toUByteArray()}")
         val parcelUuid = ParcelUuid(packetId)
         return AdvertiseData.Builder()
             .setIncludeDeviceName(false)
@@ -89,7 +85,6 @@ class Peripheral : ChatManager {
     }
 
     private fun createScanResponse(packetId: UUID?, payload: ByteArray): AdvertiseData? {
-        Log.i("BLE Peripheral", "Payload: ${payload.toUByteArray()}")
         val parcelUuid = ParcelUuid(packetId)
         return AdvertiseData.Builder()
             .setIncludeDeviceName(false)
