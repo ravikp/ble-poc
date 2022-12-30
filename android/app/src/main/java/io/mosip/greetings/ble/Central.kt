@@ -4,10 +4,12 @@ import android.bluetooth.*
 import android.bluetooth.le.*
 import android.bluetooth.le.ScanSettings.SCAN_MODE_LOW_LATENCY
 import android.content.Context
+import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import android.os.ParcelUuid
 import android.util.Log
+import io.mosip.greetings.ListDevicesActivity
 import io.mosip.greetings.chat.ChatManager
 import io.mosip.greetings.cryptography.SecretsTranslator
 import io.mosip.greetings.cryptography.WalletCryptoBox
@@ -15,11 +17,11 @@ import io.mosip.greetings.cryptography.WalletCryptoBoxBuilder
 import java.nio.charset.Charset
 import java.security.SecureRandom
 
-
+typealias Device = Pair<String, UByteArray>
 // Sequence of actions
 // Scanning -> Connecting -> Discover Services -> Subscribes to Read Characteristic
 class Central : ChatManager {
-//    private lateinit var cipherBox: CipherBox
+    //    private lateinit var cipherBox: CipherBox
 //    private lateinit var cryptoBox: CryptoBox
     private lateinit var walletCryptoBox: WalletCryptoBox
     private lateinit var secretsTranslator: SecretsTranslator
@@ -32,9 +34,13 @@ class Central : ChatManager {
     private lateinit var onMessageReceived: (String) -> Unit
     private lateinit var bluetoothLeScanner: BluetoothLeScanner
     private lateinit var onDeviceFound: () -> Unit
+    private lateinit var onDeviceSelected: () -> Unit
     private lateinit var onConnectionFailure: (String) -> Unit
     private lateinit var bluetoothGatt: BluetoothGatt
     private var servicesDiscoveryRetryCounter = 3
+    var deviceNameFromADVData: String = ""
+    var peripheralDevices: HashMap<BluetoothDevice, Device> = HashMap<BluetoothDevice, Device>()
+//    var peripheralDevices = HashMap<BluetoothDevice, Device>()
 
     private val bluetoothGattCallback = object : BluetoothGattCallback() {
         override fun onCharacteristicWrite(
@@ -44,7 +50,7 @@ class Central : ChatManager {
         ) {
             Log.i("BLE Central", "Status of write is $status for ${characteristic?.uuid}")
 
-            if(status != BluetoothGatt.GATT_SUCCESS) {
+            if (status != BluetoothGatt.GATT_SUCCESS) {
                 Log.i("BLE", "\"Failed to send message to peripheral")
             }
         }
@@ -55,9 +61,10 @@ class Central : ChatManager {
         ) {
             super.onCharacteristicChanged(gatt, characteristic)
             val decryptedMsg = secretsTranslator.decryptUponReceive(characteristic.value)
+
             Log.i("BLE Central", "Characteristic changed to ${String(decryptedMsg)}")
 
-            onMessageReceived(String( decryptedMsg))
+            onMessageReceived(String(decryptedMsg))
         }
 
         override fun onDescriptorWrite(
@@ -99,14 +106,15 @@ class Central : ChatManager {
                 bluetoothGatt = gatt
             }
 
-            val hasPeripheralService = gatt?.services?.map { it.uuid }?.contains(Peripheral.serviceUUID)
+            val hasPeripheralService =
+                gatt?.services?.map { it.uuid }?.contains(Peripheral.serviceUUID)
 
-            if(hasPeripheralService == true) {
+            if (hasPeripheralService == true) {
                 Log.i("BLE Central", "Device is connected")
                 val success = gatt.requestMtu(517)
                 Log.i("BLE Central", "Word size: $success")
                 servicesDiscoveryRetryCounter = 3
-            } else if(servicesDiscoveryRetryCounter > 0) {
+            } else if (servicesDiscoveryRetryCounter > 0) {
                 Log.i("BLE", "Retrying discover services times: $servicesDiscoveryRetryCounter")
                 updateLoadingText("Retrying discover Services: $servicesDiscoveryRetryCounter")
                 servicesDiscoveryRetryCounter--
@@ -140,37 +148,60 @@ class Central : ChatManager {
     private val leScanCallback: ScanCallback = object : ScanCallback() {
 
         // Scenario 1: Android 11 and Android 11
-                // serviceData -> {uuid -> adv data + scan resp} | TODO: Why is the serviceData is coming different?
-                // bytes -> adv data + scan resp + meta
+        // serviceData -> {uuid -> adv data + scan resp} | TODO: Why is the serviceData is coming different?
+        // bytes -> adv data + scan resp + meta
         // Scenario 2: Android 11 (Peripheral) -> Android 12 (Central)
-                // serviceData -> {uuid -> scan resp}
-                // bytes -> adv data + scan resp + meta
+        // serviceData -> {uuid -> scan resp}
+        // bytes -> adv data + scan resp + meta
         // Scenario 3: Android 12 (Peripheral) -> Android 9 (Central)
-                // serviceData -> {uuid -> scan resp}
-                // bytes -> adv data + scan resp + meta
+        // serviceData -> {uuid -> scan resp}
+        // bytes -> adv data + scan resp + meta
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            val advertisementPayload = result.scanRecord?.getServiceData(ParcelUuid(Peripheral.serviceUUID))
-            val scanResponsePayload = result.scanRecord?.getServiceData(ParcelUuid(Peripheral.scanResponseUUID))
 
-            Log.i("BLE Central", "Found the device: $result. The bytes are: ${result.scanRecord?.bytes?.toUByteArray()}")
-            Log.i("BLE Central", "PART: ADV_DATA: $result. The bytes are: ${advertisementPayload!!.toUByteArray()}")
-            Log.i("BLE Central", "PART: SCN_DATA: $result. The bytes are: ${scanResponsePayload!!.toUByteArray()}")
-            val publicKey = advertisementPayload!! + scanResponsePayload!!
+            val advertisementPayload =
+                result.scanRecord?.getServiceData(ParcelUuid(Peripheral.serviceUUID))
+            val scanResponsePayload =
+                result.scanRecord?.getServiceData(ParcelUuid(Peripheral.scanResponseUUID))
 
-//            cryptoBox = CryptoBoxBuilder().setSecureRandomSeed(SecureRandom()).build()
-//            cipherBox = cryptoBox.createCipherBox(publicKey)
+            if (advertisementPayload != null) {
+                deviceNameFromADVData = String(advertisementPayload).subSequence(0, 7) as String
+                Log.i("BLE Central", "This is advertising data : $deviceNameFromADVData")
+            }
 
-            walletCryptoBox = WalletCryptoBoxBuilder.build(SecureRandom());
-            secretsTranslator = walletCryptoBox.buildSecretsTranslator(publicKey)
-
-            stopScan()
+            var publicKey = advertisementPayload!!.copyOfRange(7, 20) + scanResponsePayload!!
+            Log.i("BLE Central", "Public Key received: ${publicKey.toUByteArray()}")
 
             super.onScanResult(callbackType, result)
-            peripheralDevice = result.device
 
-            updateLoadingText("Found a peripheral with name: ${peripheralDevice.name}")
-            onDeviceFound()
+            if (peripheralDevices.size >= 2) {
+                stopScan()
+            }
+
+           if(!peripheralDevices.containsKey(result.device)) {
+
+               peripheralDevices[result.device] = Pair(deviceNameFromADVData,publicKey.toUByteArray())
+               Log.i("^^^peripheral devices", "$peripheralDevices")
+
+               onDeviceFound()
+           }
         }
+    }
+
+    fun onPeripheralSelected(selectedPeripheral: BluetoothDevice) {
+        peripheralDevice = selectedPeripheral
+
+        val newone = (peripheralDevices[peripheralDevice])?.second
+        Log.i("BLE Central","Peripheral public key $newone")
+
+        walletCryptoBox = WalletCryptoBoxBuilder.build(SecureRandom());
+        if (newone != null) {
+            secretsTranslator = walletCryptoBox.buildSecretsTranslator(newone.toByteArray())
+        }
+
+        updateLoadingText("Found a peripheral with name: ${peripheralDevice.name}")
+        onDeviceSelected()
+
+        Log.i("BLE Central", "Selected Peripheral is $peripheralDevice")
     }
 
     companion object {
@@ -219,7 +250,8 @@ class Central : ChatManager {
 
         val service = bluetoothGatt.getService(Peripheral.serviceUUID)
         val writeChar = service.getCharacteristic(Peripheral.WRITE_MESSAGE_CHAR_UUID)
-        val encryptedMsg = secretsTranslator.encryptToSend(message.toByteArray(Charset.defaultCharset()))
+        val encryptedMsg =
+            secretsTranslator.encryptToSend(message.toByteArray(Charset.defaultCharset()))
         writeChar.value = encryptedMsg
         writeChar.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
         val status = bluetoothGatt.writeCharacteristic(writeChar)
@@ -237,10 +269,12 @@ class Central : ChatManager {
         val identifyRequestChar = service.getCharacteristic(Peripheral.IDENTIFY_REQ_CHAR_UUID)
 
 //        val message = cryptoBox.publicKey
-        val initializationVector:ByteArray = secretsTranslator.initializationVector()
-        val publicKey:ByteArray = walletCryptoBox.publicKey()
+        val initializationVector: ByteArray = secretsTranslator.initializationVector()
+        val publicKey: ByteArray = walletCryptoBox.publicKey()
 
+        Log.i("BLE Central", "Own Public Key: ${publicKey.toUByteArray()} ")
         val message = initializationVector + publicKey
+        Log.i("BLE Central", "Own Public Key: ${message.toUByteArray()} ")
 
         identifyRequestChar.value = message
         identifyRequestChar.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
@@ -255,9 +289,10 @@ class Central : ChatManager {
     fun startScanning(
         context: Context,
         onDeviceFound: () -> Unit,
+        onDeviceSelected: () -> Unit,
         updateLoadingText: (String) -> Unit
     ) {
-        init(onDeviceFound, context)
+        init(onDeviceFound, onDeviceSelected, context)
         this.updateLoadingText = updateLoadingText
 
         val handler = Handler(Looper.getMainLooper())
@@ -278,8 +313,9 @@ class Central : ChatManager {
         )
     }
 
-    private fun init(onDeviceFound: () -> Unit, context: Context) {
+    private fun init(onDeviceFound: () -> Unit, onDeviceSelected: () -> Unit, context: Context) {
         this.onDeviceFound = onDeviceFound
+        this.onDeviceSelected = onDeviceSelected
         val bluetoothManager: BluetoothManager =
             context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         val bluetoothAdapter = bluetoothManager.adapter
