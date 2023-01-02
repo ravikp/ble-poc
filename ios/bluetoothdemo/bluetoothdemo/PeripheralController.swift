@@ -27,19 +27,42 @@ class PeripheralController: NSObject, ObservableObject {
     }
     
     private func setupPeripheral() {
-        
-        let readCharacteristic = CBMutableCharacteristic(type: TransferService.characteristicUUID, properties: [.notify, .indicate], value: nil, permissions: [.readable])
-        let writeCharacteristic = CBMutableCharacteristic(type: TransferService.writeCharacteristic, properties: [.writeWithoutResponse, .write], value: nil, permissions: [.writeable])
-
         let transferService = CBMutableService(type: TransferService.serviceUUID, primary: true)
-        transferService.characteristics = [writeCharacteristic, readCharacteristic]
-
+        let scanRespService = CBMutableService(type: TransferService.scanResponseServiceUUID, primary: true)
+        let identityChar = CBMutableCharacteristic(type: TransferService.identifyRequestCharacteristic,
+                                                   properties: [.write, .writeWithoutResponse], value: nil, permissions:  [.writeable])
+        let requestSizeChar = CBMutableCharacteristic(type: TransferService.requestSizeCharacteristic,
+                                                      properties: [.read, .indicate], value: nil, permissions:  [.readable])
+        let requestChar = CBMutableCharacteristic(type: TransferService.requestCharacteristic,
+                                                  properties: [.read, .indicate], value: nil, permissions:  [.readable])
+        let responseSizeChar = CBMutableCharacteristic(type: TransferService.responseSizeCharacteristic,
+                                                       properties: [.write, .writeWithoutResponse], value: nil, permissions: [.writeable])
+        let responseChar = CBMutableCharacteristic(type: TransferService.responseCharacteristic,
+                                                    properties: [.write, .writeWithoutResponse], value: nil, permissions:  [.writeable])
+        let semaphoreChar = CBMutableCharacteristic(type: TransferService.semaphoreCharacteristic,
+                                                    properties: [.write, .writeWithoutResponse, .read, .indicate], value: nil, permissions:  [.readable, .writeable])
+        let verificationChar = CBMutableCharacteristic(type: TransferService.verificationStatusCharacteristic,
+                                                       properties: [.read, .indicate], value: nil, permissions:  [.readable])
+        // let dummy = CBMutableService(type: TransferService.dummySvc, primary: true)
+        // let dummy2 = CBMutableService(type: TransferService.dummySvc2, primary: false)
+        // TODO: Put create a CBMutableCharacteristic collection
+        // maybe an array or a Dictionary of CBUUID: CBMutableCharacteristic
+        transferService.characteristics = [identityChar, requestSizeChar, requestChar, responseChar, responseSizeChar, semaphoreChar, verificationChar]
+        print(transferService.debugDescription)
         peripheralManager.add(transferService)
-        self.readCharacteristic = readCharacteristic
-        self.writeCharacteristic = writeCharacteristic
-        peripheralManager.startAdvertising([CBAdvertisementDataServiceUUIDsKey: [TransferService.serviceUUID]])
+        peripheralManager.add(scanRespService)
+        // peripheralManager.add(dummy)
+        // peripheralManager.add(dummy2)
+        // TODO: Find out how many bytes are remaining for advertising packets now.
+        // peripheralManager.startAdvertising([CBAdvertisementDataServiceUUIDsKey: [TransferService.serviceUUID]])
+        startAdvertising()
     }
-    
+
+    private func startAdvertising() {
+        // not setting Local name via CBAdvertisementDataLocalNameKey
+        peripheralManager.startAdvertising([CBAdvertisementDataServiceUUIDsKey: relevantPeripherals])
+    }
+
     func sendData(message: String) {
         guard let writeCharacteristic = readCharacteristic else {
             return

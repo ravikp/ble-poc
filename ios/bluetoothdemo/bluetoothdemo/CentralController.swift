@@ -31,11 +31,18 @@ class CentralController: NSObject, ObservableObject {
     }
     
     func scanForPeripherals() {
-        centralManager.scanForPeripherals(withServices: [TransferService.serviceUUID], options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
+        centralManager.scanForPeripherals(withServices: relevantPeripherals, options: [
+            // the below one might be better kept as false
+            // the BLE Scan resp blog suggests to keep it to True
+            // but Apple's default is false
+            // ref: https://uynguyen.github.io/2020/08/23/Best-practice-Advanced-BLE-scanning-process-on-iOS/
+            CBCentralManagerScanOptionAllowDuplicatesKey: true,
+            // ref: https://stackoverflow.com/questions/31062176/scanforperipheralswithservicesoptions-and-cbcentralmanagerscanoptionsoliciteds?rq=1
+            CBCentralManagerScanOptionSolicitedServiceUUIDsKey: relevantPeripherals])
     }
     
     func connectToPeripheral(peripheral: CBPeripheral) {
-        os_log("Coonecting to peripheral")
+        os_log("Connecting to peripheral")
         centralManager.connect(peripheral)
     }
     
@@ -111,14 +118,17 @@ extension CentralController: CBCentralManagerDelegate {
             os_log("Appending peripheral - %@ to list", String(describing: peripheral.name))
             os_log("Scan Response data - %s", String(data: data as! Data, encoding: .utf8) ?? "No Scan Response Data")
             peripherals.append(peripheral)
-            
+
             let scanResponseData = dataDict?[CBUUID(string: "AB2A")]  as! Data
             let advertisementData = dataDict?[CBUUID(string: "AB29")]  as! Data
+            os_log("advertisement data -> \(advertisementData)")
+            os_log("scan response data -> \(scanResponseData)")
             let publicKeyData =  advertisementData + scanResponseData
             cryptoBox = WalletCryptoBoxBuilder().build()
             secretsTranslator = (cryptoBox?.buildSecretsTranslator(verifierPublicKey: publicKeyData))!
         }
         os_log("%@", advertisementData)
+        os_log("---------------------------")
     }
     
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
@@ -151,9 +161,8 @@ extension CentralController: CBPeripheralDelegate {
             cleanup()
             return
         }
-        
-        os_log("Discovering services for \(String(describing: peripheral.name))")
-        
+        print("found \(String(describing: peripheral.services?.count)) services for peripheral \(String(describing: peripheral.name))")
+        // os_log("Discovering services for \(String(describing: peripheral.name))")
         guard let peripheralServices = peripheral.services else { return }
         for service in peripheralServices {
             peripheral.discoverCharacteristics([TransferService.characteristicUUID, TransferService.identifyRequestCharacteristic, TransferService.writeCharacteristic], for: service)
