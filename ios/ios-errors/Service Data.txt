@@ -1,0 +1,17 @@
+2023-01-04 11:10:53.961134+0530 bluetoothdemo[9112:314302] CBPeripheral is powered ON
+2023-01-04 11:10:53.962514+0530 bluetoothdemo[9112:314302] [CoreBluetooth] WARNING: The advertisement key 'Service Data' is not allowed
+2023-01-04 11:10:53.962651+0530 bluetoothdemo[9112:314302] -[CBUUID UTF8String]: unrecognized selector sent to instance 0x281c5cde0
+2023-01-04 11:10:53.965709+0530 bluetoothdemo[9112:314302] *** Terminating app due to uncaught exception 'NSInvalidArgumentException', reason: '-[CBUUID UTF8String]: unrecognized selector sent to instance 0x281c5cde0'
+*** First throw call stack:
+(0x1808ffc80 0x198123ee4 0x1809d0708 0x18089956c 0x18089877c 0x1a378583c 0x1808aa8e8 0x1808eaf20 0x1a3784fc4 0x1a3785a28 0x1a3785854 0x1852d87cc 0x1850ca18c 0x1a3784fc4 0x1a3784e4c 0x1a3784248 0x1a3794224 0x1a378e4bc 0x104d0ffdc 0x104d10914 0x104d110e4 0x1a378d314 0x181fb17ec 0x181f9dcf8 0x181fab6b8 0x181fa19c4 0x182005918 0x1a3793df0 0x1a3794e10 0x1a37852e4 0x10581c700 0x10581dfc8 0x105825150 0x105825e10 0x10582c7f4 0x10582c4fc 0x1808bb034 0x180878538 0x18088b194 0x1a13be988 0x18308da88 0x182e26fc8 0x1880dfd68 0x18802a83c 0x1880101dc 0x104d28664 0x104d2870c 0x1056f04d0)
+libc++abi: terminating with uncaught exception of type NSException
+dyld4 config: DYLD_LIBRARY_PATH=/usr/lib/system/introspection DYLD_INSERT_LIBRARIES=/Developer/usr/lib/libBacktraceRecording.dylib:/Developer/usr/lib/libMainThreadChecker.dylib:/Developer/Library/PrivateFrameworks/DTDDISupport.framework/libViewDebuggerSupport.dylib
+*** Terminating app due to uncaught exception 'NSInvalidArgumentException', reason: '-[CBUUID UTF8String]: unrecognized selector sent to instance 0x281c5cde0'
+terminating with uncaught exception of type NSException
+dyld4 config: DYLD_LIBRARY_PATH=/usr/lib/system/introspection DYLD_INSERT_LIBRARIES=/Developer/usr/lib/libBacktraceRecording.dylib:/Developer/usr/lib/libMainThreadChecker.dylib:/Developer/Library/PrivateFrameworks/DTDDISupport.framework/libViewDebuggerSupport.dylib
+*** Terminating app due to uncaught exception 'NSInvalidArgumentException', reason: '-[CBUUID UTF8String]: unrecognized selector sent to instance 0x281c5cde0'
+terminating with uncaught exception of type NSException
+
+
+^^ on setting
+CBAdvertisementDataServiceDataKey: map
