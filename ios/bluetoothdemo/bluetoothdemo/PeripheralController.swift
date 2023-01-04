@@ -66,14 +66,18 @@ class PeripheralController: NSObject, ObservableObject {
         let map :[CBUUID:NSData] = [
             TransferService.serviceUUID: NSData(bytes: k1, length: k1.count),
             TransferService.scanResponseServiceUUID: NSData(bytes: k2, length: k2.count)]
+        
         peripheralManager.startAdvertising([CBAdvertisementDataServiceUUIDsKey: [TransferService.serviceUUID],
                                             // set the device local name as required
                                             // if this isn't set the Android/other devices use the Bluetooth device name iirc
                                             // ref: https://stackoverflow.com/questions/29203983/clearing-ios-ble-cache
                                                CBAdvertisementDataLocalNameKey: self.deviceName,
-                                            // if the below line is uncommented, the app crashes!
+                                            // if the below line is uncommented, the app crashes if the datatype matches exactly the oone mentioned in code comments
                                             // stacktrace in ios-errors/Service\ Data.txt
-                                            //      CBAdvertisementDataServiceDataKey: map
+                                            // if a string value is used, the app doesn't crash
+                                            // but a StackOverflow answer mentions that it's a ReadOnly field
+                                            // ref: https://stackoverflow.com/a/67028141
+                                             CBAdvertisementDataServiceDataKey: map as Any
                                            ])
     }
 
