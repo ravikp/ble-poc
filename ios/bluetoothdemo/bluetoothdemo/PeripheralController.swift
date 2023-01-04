@@ -77,7 +77,7 @@ class PeripheralController: NSObject, ObservableObject {
                                             // if a string value is used, the app doesn't crash
                                             // but a StackOverflow answer mentions that it's a ReadOnly field
                                             // ref: https://stackoverflow.com/a/67028141
-                                             CBAdvertisementDataServiceDataKey: map as Any
+                                            // CBAdvertisementDataServiceDataKey: map as Any
                                            ])
     }
 
