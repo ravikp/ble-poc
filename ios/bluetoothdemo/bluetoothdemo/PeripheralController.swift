@@ -70,7 +70,11 @@ class PeripheralController: NSObject, ObservableObject {
                                             // set the device local name as required
                                             // if this isn't set the Android/other devices use the Bluetooth device name iirc
                                             // ref: https://stackoverflow.com/questions/29203983/clearing-ios-ble-cache
-                                               CBAdvertisementDataLocalNameKey: self.deviceName])
+                                               CBAdvertisementDataLocalNameKey: self.deviceName,
+                                            // if the below line is uncommented, the app crashes!
+                                            // stacktrace in ios-errors/Service\ Data.txt
+                                            //      CBAdvertisementDataServiceDataKey: map
+                                           ])
     }
 
     func sendData(message: String) {
