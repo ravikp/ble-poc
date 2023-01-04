@@ -31,14 +31,14 @@ class CentralController: NSObject, ObservableObject {
     }
     
     func scanForPeripherals() {
-        centralManager.scanForPeripherals(withServices: relevantPeripherals, options: [
+        centralManager.scanForPeripherals(withServices: [TransferService.serviceUUID], options: [
             // the below one might be better kept as false
             // the BLE Scan resp blog suggests to keep it to True
             // but Apple's default is false
             // ref: https://uynguyen.github.io/2020/08/23/Best-practice-Advanced-BLE-scanning-process-on-iOS/
             CBCentralManagerScanOptionAllowDuplicatesKey: true,
             // ref: https://stackoverflow.com/questions/31062176/scanforperipheralswithservicesoptions-and-cbcentralmanagerscanoptionsoliciteds?rq=1
-            CBCentralManagerScanOptionSolicitedServiceUUIDsKey: relevantPeripherals])
+            ])
     }
     
     func connectToPeripheral(peripheral: CBPeripheral) {
@@ -113,6 +113,7 @@ extension CentralController: CBCentralManagerDelegate {
     }
     
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
+        print("Found a peripheral \(String(describing: peripheral.name)) with \(String(describing: peripheral.services)) ")
         let dataDict = advertisementData["kCBAdvDataServiceData"] as? [CBUUID: Any?]
         if let uuidDict = dataDict, let data = uuidDict[CBUUID(string: "AB2A")], let data = data {
             os_log("Appending peripheral - %@ to list", String(describing: peripheral.name))

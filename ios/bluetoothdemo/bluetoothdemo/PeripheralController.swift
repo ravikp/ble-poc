@@ -15,6 +15,7 @@ class PeripheralController: NSObject, ObservableObject {
     var readCharacteristic: CBMutableCharacteristic?
     var writeCharacteristic: CBMutableCharacteristic?
     var connectedCentral: CBCentral?
+    var deviceName: String = "ThoughtWorks India"
     var dataToSend = Data()
     var peripheralUser: User?
     
@@ -28,7 +29,7 @@ class PeripheralController: NSObject, ObservableObject {
     
     private func setupPeripheral() {
         let transferService = CBMutableService(type: TransferService.serviceUUID, primary: true)
-        let scanRespService = CBMutableService(type: TransferService.scanResponseServiceUUID, primary: true)
+        
         let identityChar = CBMutableCharacteristic(type: TransferService.identifyRequestCharacteristic,
                                                    properties: [.write, .writeWithoutResponse], value: nil, permissions:  [.writeable])
         let requestSizeChar = CBMutableCharacteristic(type: TransferService.requestSizeCharacteristic,
@@ -48,20 +49,29 @@ class PeripheralController: NSObject, ObservableObject {
         // TODO: Put create a CBMutableCharacteristic collection
         // maybe an array or a Dictionary of CBUUID: CBMutableCharacteristic
         transferService.characteristics = [identityChar, requestSizeChar, requestChar, responseChar, responseSizeChar, semaphoreChar, verificationChar]
-        print(transferService.debugDescription)
+        // print(transferService.debugDescription)
         peripheralManager.add(transferService)
-        peripheralManager.add(scanRespService)
-        // peripheralManager.add(dummy)
-        // peripheralManager.add(dummy2)
         // TODO: Find out how many bytes are remaining for advertising packets now.
         // peripheralManager.startAdvertising([CBAdvertisementDataServiceUUIDsKey: [TransferService.serviceUUID]])
-        startAdvertising()
-    }
-
-    private func startAdvertising() {
+        
+        // ref: https://www.dotnetperls.com/convert-string-byte-array-swift#:~:text=In%20Swift%20a%20byte%20is,we%20get%20a%20UTF8View%20collection.
         // not setting Local name via CBAdvertisementDataLocalNameKey
-        peripheralManager.startAdvertising([CBAdvertisementDataServiceUUIDsKey: relevantPeripherals, CBAdvertisementDataLocalNameKey: Data([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
-                                                                                    14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32])])
+        // converted advt payload -> 0x1cd2e4d8359597366da26c8c8ef37700 as per https://stackoverflow.com/a/32976951
+        // Didn't use CChar as it is Int8 & Byte in Swift
+        let k1: [UInt8] = [0x1c, 0xd2, 0xe4, 0xd8, 0x35, 0x95, 0x97, 0x36, 0x6d, 0xa2, 0x6c,
+                           0x8c, 0x8e, 0xf3, 0x77, 0x0]
+        // converted scan resp payload -> 0x11fea3e7c56fb9beb9f3e3200bca6304 as per https://stackoverflow.com/a/32976951
+        let k2: [UInt8] = [0x11, 0xfe, 0xa3, 0xe7, 0xc5, 0x6f, 0xb9, 0xbe, 0xb9, 0xf3, 0xe3,
+                           0x20, 0x0b, 0xca, 0x63, 0x04]
+        let map :[CBUUID:NSData] = [
+            TransferService.serviceUUID: NSData(bytes: k1, length: k1.count),
+            TransferService.scanResponseServiceUUID: NSData(bytes: k2, length: k2.count)]
+        peripheralManager.startAdvertising([CBAdvertisementDataServiceUUIDsKey: [TransferService.serviceUUID],
+                                            // set the device local name as required
+                                            // if this isn't set the Android/other devices use the Bluetooth device name iirc
+                                            // ref: https://stackoverflow.com/questions/29203983/clearing-ios-ble-cache
+                                               CBAdvertisementDataLocalNameKey: self.deviceName,
+                                                 CBAdvertisementDataServiceDataKey: map])
     }
 
     func sendData(message: String) {
@@ -84,6 +94,10 @@ extension PeripheralController: CBPeripheralManagerDelegate {
         case .poweredOn:
             os_log("CBPeripheral is powered ON")
             setupPeripheral()
+        case .poweredOff:
+            os_log("toggled device localName")
+            self.deviceName = "ACME International India"
+            print("peripheral name changed! Peripheral can be setup again successfully!")
         default:
             os_log("CBPeripheral is state \(peripheral.state.rawValue)")
         }
